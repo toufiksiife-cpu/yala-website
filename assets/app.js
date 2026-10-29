@@ -1,7 +1,12 @@
 /* Language switch + mobile menu. No dependencies. */
 (function () {
   var KEY = "yala-lang";
-  var lang = localStorage.getItem(KEY) === "en" ? "en" : "ar";
+
+  // Some browsers block storage in private mode; the site must still work.
+  function read() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function write(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+
+  var lang = read() === "en" ? "en" : "ar";
 
   // English is applied over the Arabic markup. Arabic is the HTML itself,
   // so no-JS visitors and Google still get full Arabic content.
@@ -25,7 +30,7 @@
     var toggle = e.target.closest("[data-lang-toggle]");
     if (toggle) {
       // Reload so Arabic comes back from the HTML, not from a second copy.
-      localStorage.setItem(KEY, lang === "en" ? "ar" : "en");
+      write(lang === "en" ? "ar" : "en");
       location.reload();
       return;
     }
