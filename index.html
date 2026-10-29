@@ -1,46 +1,173 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-title="home.title">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YALA — أكاديمية يغمراسن للغات والفنون | Yaghmoracen Academy</title>
-<meta name="description" content="أكاديمية يغمراسن للغات والفنون، تلمسان — دروس اللغات والدعم المدرسي. Yaghmoracen Academy of Languages and Arts, Tlemcen.">
-<meta property="og:title" content="YALA — Yaghmoracen Academy of Languages and Arts">
-<meta property="og:description" content="Languages and school support in Tlemcen, Algeria.">
+<title>YALA — أكاديمية يغمراسن للغات والفنون، تلمسان</title>
+<meta name="description" content="دعم مدرسي في مختلف المواد وبرامج لغات مكثفة في تلمسان. أكاديمية يغمراسن للغات والفنون — مهاراتك تبدأ هنا.">
+<meta property="og:title" content="YALA — Yaghmoracen Academy of Languages and Arts, Tlemcen">
+<meta property="og:description" content="Academic support and intensive language programs in Tlemcen, Algeria.">
 <meta property="og:type" content="website">
-<style>
-  :root{
-    --navy:#1E456F; --green:#7CB73E; --teal:#2D9D97; --orange:#F18225;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0; min-height:100vh; display:grid; place-items:center; padding:24px;
-    background:var(--navy); color:#fff;
-    font-family:system-ui,"Segoe UI",Tahoma,Arial,sans-serif;
-    text-align:center;
-  }
-  main{max-width:34rem}
-  h1{margin:0 0 4px; font-size:clamp(2.6rem,12vw,4rem); letter-spacing:.14em; color:#fff}
-  .bar{width:72px; height:4px; margin:14px auto 22px; border-radius:2px; background:var(--green)}
-  .ar{font-size:1.15rem; line-height:1.7; margin:0 0 6px}
-  .en{font-size:.95rem; line-height:1.6; margin:0 0 22px; opacity:.85; direction:ltr}
-  .soon{font-size:.9rem; margin:0 0 26px; color:var(--teal)}
-  a.cta{
-    display:inline-block; padding:14px 26px; border-radius:10px;
-    background:var(--orange); color:#fff; font-weight:700; text-decoration:none;
-    font-size:1rem;
-  }
-  a.cta:focus-visible{outline:3px solid #fff; outline-offset:3px}
-</style>
+<meta property="og:image" content="assets/img/og-image.png">
+<meta name="theme-color" content="#1E456F">
+<link rel="icon" href="assets/img/favicon.png">
+<link rel="stylesheet" href="assets/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LanguageSchool",
+  "name": "YALA — Yaghmoracen Academy of Languages and Arts",
+  "alternateName": "أكاديمية يغمراسن للغات والفنون",
+  "description": "Academic support and intensive language programs in Tlemcen, Algeria.",
+  "telephone": "+213652783647",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Abou Tachefine",
+    "addressLocality": "Tlemcen",
+    "addressCountry": "DZ"
+  },
+  "geo": { "@type": "GeoCoordinates", "latitude": 34.910965, "longitude": -1.318242 },
+  "sameAs": [
+    "https://www.facebook.com/profile.php?id=61581667646245",
+    "https://www.instagram.com/yaghmoracen.academy/",
+    "https://www.tiktok.com/@yaghmoracen.acade"
+  ]
+}
+</script>
 </head>
 <body>
-<main>
-  <h1>YALA</h1>
-  <div class="bar" aria-hidden="true"></div>
-  <p class="ar">أكاديمية يغمراسن للغات والفنون — تلمسان</p>
-  <p class="en">Yaghmoracen Academy of Languages and Arts — Tlemcen</p>
-  <p class="soon">الموقع قيد الإنشاء · Site under construction</p>
-  <a class="cta" href="https://wa.me/213652783647">واتساب · WhatsApp</a>
+<a class="skip" href="#main">تخطَّ إلى المحتوى</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/img/logo.webp" width="600" height="183" alt="YALA — أكاديمية يغمراسن للغات والفنون">
+    </a>
+    <nav id="site-nav" class="nav-links" aria-label="القائمة الرئيسية">
+      <a href="index.html" aria-current="page" data-i18n="nav.home">الرئيسية</a>
+      <a href="about.html" data-i18n="nav.about">من نحن</a>
+      <a href="contact.html" data-i18n="nav.contact">اتصل بنا</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" data-i18n-aria="nav.menu" aria-label="القائمة">☰</button>
+      <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch">EN</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="kicker" data-i18n="home.kicker">أكاديمية يغمراسن للغات والفنون — تلمسان</p>
+      <h1 data-i18n="home.h1">مهاراتك تبدأ هنا</h1>
+      <p class="lead" data-i18n="home.pitch">دعم الطلاب في مختلف المواد، وبرامج لغات مكثفة للنجاح المهني.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://wa.me/213652783647" rel="noopener" data-i18n="home.cta1">سجّل عبر واتساب</a>
+        <a class="btn btn-ghost" href="contact.html" data-i18n="home.cta2">اتصل بنا</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2 data-i18n="home.catsTitle">دوراتنا</h2>
+      <p class="section-note" data-i18n="home.catsNote">الأسعار والمواعيد الكاملة تُنشر مع صفحة الدورات.</p>
+      <div class="grid cols-3">
+        <article class="card">
+          <div class="accent"></div>
+          <h3 data-i18n="cat1">الدعم المدرسي — الابتدائي</h3>
+          <p data-i18n="cat1d">قراءة، كتابة، رياضيات، فرنسية، عربية</p>
+        </article>
+        <article class="card">
+          <div class="accent"></div>
+          <h3 data-i18n="cat2">الدعم المدرسي — المتوسط</h3>
+          <p data-i18n="cat2d">جميع المواد الأساسية وتقوية المكتسبات</p>
+        </article>
+        <article class="card">
+          <div class="accent"></div>
+          <h3 data-i18n="cat3">الدعم المدرسي — الثانوي</h3>
+          <p data-i18n="cat3d">تحضير البكالوريا وشهادة التعليم المتوسط</p>
+        </article>
+        <article class="card">
+          <div class="accent"></div>
+          <h3 data-i18n="cat4">دورات اللغات للأطفال</h3>
+          <p data-i18n="cat4d">من 6 إلى 14 سنة، دروس تفاعلية</p>
+        </article>
+        <article class="card">
+          <div class="accent"></div>
+          <h3 data-i18n="cat5">دورات اللغات للكبار</h3>
+          <p data-i18n="cat5d">إنجليزي، فرنسي، ألماني، تركي، إسباني</p>
+        </article>
+        <article class="card">
+          <div class="accent"></div>
+          <h3 data-i18n="cat6">دورات تكوينية أخرى</h3>
+          <p data-i18n="cat6d">تحضير متخصص ولغات مهنية</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="wrap">
+      <h2 data-i18n="home.whyTitle">لماذا يختارنا الأولياء</h2>
+      <div class="grid cols-3" style="margin-block-start:24px">
+        <article class="card">
+          <h3 data-i18n="why1t">مجموعات صغيرة</h3>
+          <p data-i18n="why1d">متابعة فردية لكل طالب.</p>
+        </article>
+        <article class="card">
+          <h3 data-i18n="why2t">أساتذة متخصصون</h3>
+          <p data-i18n="why2d">أستاذ لكل مادة ولغة.</p>
+        </article>
+        <article class="card">
+          <h3 data-i18n="why3t">تقييم مستمر</h3>
+          <p data-i18n="why3d">تقدم ملموس، لا مجرد حضور.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2 data-i18n="home.locTitle">أين تجدنا</h2>
+      <p class="section-note" data-i18n="home.locText">أبو تشفين، تلمسان، الجزائر.</p>
+      <a class="btn btn-outline" href="contact.html" data-i18n="home.locCta">انظر الخريطة</a>
+    </div>
+  </section>
+
 </main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h3>YALA</h3>
+        <p data-i18n="footer.tag">دعم مدرسي وبرامج لغات مكثفة في تلمسان.</p>
+        <p>أبو تشفين، تلمسان، الجزائر</p>
+        <p><a href="tel:+213652783647">+213 652 78 36 47</a></p>
+      </div>
+      <div>
+        <h3 data-i18n="footer.contact">اتصل</h3>
+        <ul>
+          <li><a href="https://wa.me/213652783647" rel="noopener">WhatsApp</a></li>
+          <li><a href="contact.html" data-i18n="nav.contact">اتصل بنا</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 data-i18n="footer.follow">تابعنا</h3>
+        <ul>
+          <li><a href="https://www.facebook.com/profile.php?id=61581667646245" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://www.instagram.com/yaghmoracen.academy/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.tiktok.com/@yaghmoracen.acade" target="_blank" rel="noopener">TikTok</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="legal">© <span id="year">2026</span> — <span data-i18n="footer.rights">أكاديمية يغمراسن للغات والفنون</span></p>
+  </div>
+</footer>
+
+<script src="assets/locales.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>
