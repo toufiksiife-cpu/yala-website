@@ -31,6 +31,7 @@
     <nav id="site-nav" class="nav-links" aria-label="القائمة الرئيسية">
       <a href="index.html" data-i18n="nav.home">الرئيسية</a>
       <a href="courses.html" aria-current="page" data-i18n="nav.courses">الدورات</a>
+      <a href="register.html" data-i18n="nav.register">التسجيل</a>
       <a href="about.html" data-i18n="nav.about">من نحن</a>
       <a href="contact.html" data-i18n="nav.contact">اتصل بنا</a>
     </nav>
@@ -98,10 +99,10 @@
 
 <script src="assets/locales.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/config.js"></script>
 <script>
 (function () {
-  // Filled in once the Apps Script web app is deployed. See docs/phase2-api.md.
-  var API_URL = "https://script.google.com/macros/s/AKfycbzb4zJE_JjVJSBNtk3feIghbbcKqJREQbaR3rkE-8FHqkRMBbM5K2oH8oPejiPpKZ-mNA/exec";
+  var API_URL = window.YALA_API;
 
   var isAR = document.documentElement.lang !== "en";
   var T = isAR

@@ -22,6 +22,10 @@
       var v = t[el.getAttribute("data-i18n-aria")];
       if (v) el.setAttribute("aria-label", v);
     });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+      var v = t[el.getAttribute("data-i18n-placeholder")];
+      if (v) el.setAttribute("placeholder", v);
+    });
     var titleKey = document.documentElement.getAttribute("data-title");
     if (titleKey && t[titleKey]) document.title = t[titleKey];
   }

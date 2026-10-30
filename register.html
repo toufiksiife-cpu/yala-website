@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-title="register.title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التسجيل — YALA، تلمسان</title>
+<meta name="description" content="سجّل في أكاديمية يغمراسن للغات والفنون، تلمسان. نموذج تسجيل قصير، وسنتصل بك لتأكيد الدورة.">
+<meta property="og:title" content="Register — YALA, Tlemcen">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/img/og-image.png">
+<meta name="theme-color" content="#1E456F">
+<link rel="icon" href="assets/img/favicon.png">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip" href="#main">تخطَّ إلى المحتوى</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/img/logo.webp" width="600" height="183" alt="YALA — أكاديمية يغمراسن للغات والفنون">
+    </a>
+    <nav id="site-nav" class="nav-links" aria-label="القائمة الرئيسية">
+      <a href="index.html" data-i18n="nav.home">الرئيسية</a>
+      <a href="courses.html" data-i18n="nav.courses">الدورات</a>
+      <a href="register.html" aria-current="page" data-i18n="nav.register">التسجيل</a>
+      <a href="about.html" data-i18n="nav.about">من نحن</a>
+      <a href="contact.html" data-i18n="nav.contact">اتصل بنا</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" data-i18n-aria="nav.menu" aria-label="القائمة">☰</button>
+      <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch">EN</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <h1 data-i18n="register.h1">التسجيل</h1>
+      <p class="lead" data-i18n="register.lead">املأ النموذج ولنتصل بك على الهاتف لتأكيد الدورة والتوقيت. التسجيل لا يعني الدفع.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap" style="max-width:760px">
+
+      <div id="form-error" class="form-error" role="alert" hidden></div>
+
+      <form id="reg" novalidate>
+        <p class="section-note" data-i18n="form.requiredHint">الحقول المعلّمة بـ * إلزامية.</p>
+
+        <div class="field-row cols-2">
+          <div class="field" data-field="fullName">
+            <label for="fullName"><span data-i18n="form.name">الاسم الكامل</span> *</label>
+            <input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="80" required>
+            <p class="field-error" hidden></p>
+          </div>
+          <div class="field" data-field="dob">
+            <label for="dob"><span data-i18n="form.dob">تاريخ الميلاد</span> *</label>
+            <input id="dob" name="dob" type="date" required>
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="field-row cols-2">
+          <div class="field" data-field="phone">
+            <label for="phone"><span data-i18n="form.phone">الهاتف</span> *</label>
+            <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="05 55 12 34 56" autocomplete="tel" maxlength="20" required>
+            <p class="field-error" hidden></p>
+          </div>
+          <div class="field" data-field="email">
+            <label for="email"><span data-i18n="form.email">البريد الإلكتروني</span></label>
+            <span class="hint" data-i18n="form.optional">اختياري</span>
+            <input id="email" name="email" type="email" autocomplete="email" maxlength="120">
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="fieldset" id="courses-box">
+          <legend data-i18n="form.courses">الدورات المطلوبة</legend>
+          <p class="hint" data-i18n="form.coursesHint">اختر دورة واحدة أو أكثر.</p>
+          <div id="course-list"><p data-i18n="form.coursesLoading">جارٍ تحميل الدورات…</p></div>
+          <p class="field-error" id="courses-error" hidden></p>
+        </div>
+
+        <div class="fieldset" id="parent-box" hidden>
+          <legend data-i18n="form.parentTitle">الولي</legend>
+          <p class="hint" data-i18n="form.parentHint">مطلوب لأن الطالب أقل من 18 سنة.</p>
+          <div class="field" data-field="parentName">
+            <label for="parentName"><span data-i18n="form.parentName">اسم الولي</span> *</label>
+            <input id="parentName" name="parentName" type="text" autocomplete="name" maxlength="80">
+            <p class="field-error" hidden></p>
+          </div>
+          <div class="field-row cols-2">
+            <div class="field" data-field="parentPhone">
+              <label for="parentPhone"><span data-i18n="form.parentPhone">هاتف الولي</span> *</label>
+              <input id="parentPhone" name="parentPhone" type="tel" inputmode="tel" maxlength="20">
+              <p class="field-error" hidden></p>
+            </div>
+            <div class="field" data-field="parentRelation">
+              <label for="parentRelation" data-i18n="form.parentRelation">صلة القرابة</label>
+              <select id="parentRelation" name="parentRelation">
+                <option value="Père" data-i18n="form.relFather">الأب</option>
+                <option value="Mère" data-i18n="form.relMother">الأم</option>
+                <option value="Tuteur" data-i18n="form.relTutor">ولي</option>
+                <option value="Autre" data-i18n="form.relOther">أخرى</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" data-field="notes">
+          <label for="notes" data-i18n="form.notes">ملاحظات</label>
+          <span class="hint" data-i18n="form.optional">اختياري</span>
+          <textarea id="notes" name="notes" maxlength="500" data-i18n-placeholder="form.notesHint" placeholder="مستوى الطالب، التوقيت المناسب…"></textarea>
+        </div>
+
+        <div class="choice" style="margin-block-end:18px">
+          <input id="consent" name="consent" type="checkbox" required>
+          <label for="consent" data-i18n="form.consent">أوافق على استعمال هذه المعلومات للتواصل معي بخصوص التسجيل فقط.</label>
+        </div>
+
+        <div class="hp" aria-hidden="true">
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button class="btn btn-primary" type="submit" id="submit" data-i18n="form.submit">إرسال التسجيل</button>
+      </form>
+
+      <div id="success" class="success-box" hidden>
+        <h2 data-i18n="success.title">تم استلام تسجيلك</h2>
+        <p data-i18n="success.text">سنتصل بك على الهاتف لتأكيد الدورة والتوقيت.</p>
+        <p><span data-i18n="success.ref">رقم التسجيل:</span> <span class="id" id="reg-id">—</span></p>
+        <p style="margin-block-start:20px">
+          <a class="btn btn-wa" href="https://wa.me/213652783647" rel="noopener" data-i18n="success.wa">راسلنا على واتساب</a>
+        </p>
+      </div>
+
+      <noscript>
+        <p class="form-error">JavaScript معطّل. راسلنا على واتساب للتسجيل: +213 652 78 36 47</p>
+      </noscript>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h3>YALA</h3>
+        <p data-i18n="footer.tag">دعم مدرسي وبرامج لغات مكثفة في تلمسان.</p>
+        <p>أبو تشفين، تلمسان، الجزائر</p>
+        <p><a href="tel:+213652783647">+213 652 78 36 47</a></p>
+      </div>
+      <div>
+        <h3 data-i18n="footer.contact">اتصل</h3>
+        <ul>
+          <li><a href="https://wa.me/213652783647" rel="noopener">WhatsApp</a></li>
+          <li><a href="mailto:yaghmoracen.academy@gmail.com" dir="ltr">yaghmoracen.academy@gmail.com</a></li>
+          <li><a href="contact.html" data-i18n="nav.contact">اتصل بنا</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 data-i18n="footer.follow">تابعنا</h3>
+        <ul>
+          <li><a href="https://www.facebook.com/profile.php?id=61581667646245" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://www.instagram.com/yaghmoracen.academy/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.tiktok.com/@yaghmoracen.acade" target="_blank" rel="noopener">TikTok</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="legal">© <span id="year">2026</span> — <span data-i18n="footer.rights">أكاديمية يغمراسن للغات والفنون</span></p>
+  </div>
+</footer>
+
+<script src="assets/locales.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/config.js"></script>
+<script>
+(function () {
+  var isAR = document.documentElement.lang !== "en";
+
+  var T = isAR ? {
+    errName: "أدخل الاسم الكامل (3 أحرف على الأقل).",
+    errDob: "تاريخ الميلاد غير صحيح.",
+    errPhone: "رقم الهاتف غير صحيح.",
+    errEmail: "البريد الإلكتروني غير صحيح.",
+    errCourses: "اختر دورة واحدة على الأقل.",
+    errParent: "اسم وهاتف الولي مطلوبان لمن هم أقل من 18 سنة.",
+    errConsent: "يجب الموافقة قبل الإرسال.",
+    errDuplicate: "يوجد تسجيل سابق بنفس الاسم أو الرقم. راسلنا على واتساب لتأكيد الأمر.",
+    errTooMany: "تم إرسال تسجيل بهذا الرقم مؤخراً. أعد المحاولة بعد 10 دقائق أو راسلنا على واتساب.",
+    errGeneric: "تعذّر إرسال الطلب. راسلنا على واتساب.",
+    sending: "جارٍ الإرسال…",
+    submit: "إرسال التسجيل",
+    fee: "دج/شهر"
+  } : {
+    errName: "Enter the full name (at least 3 characters).",
+    errDob: "Date of birth is not valid.",
+    errPhone: "Phone number is not valid.",
+    errEmail: "Email address is not valid.",
+    errCourses: "Choose at least one course.",
+    errParent: "Parent name and phone are required under 18.",
+    errConsent: "Please accept before sending.",
+    errDuplicate: "A registration with this name or phone already exists. Message us on WhatsApp to confirm.",
+    errTooMany: "A registration from this number was just sent. Try again in 10 minutes or message us on WhatsApp.",
+    errGeneric: "The request could not be sent. Message us on WhatsApp.",
+    sending: "Sending…",
+    submit: "Send registration",
+    fee: "DZD/month"
+  };
+
+  var form = document.getElementById("reg");
+  var errorBox = document.getElementById("form-error");
+  var submitBtn = document.getElementById("submit");
+  var parentBox = document.getElementById("parent-box");
+  var coursesError = document.getElementById("courses-error");
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.hidden = false;
+    errorBox.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
+  function clearErrors() {
+    errorBox.hidden = true;
+    document.querySelectorAll(".field.invalid").forEach(function (f) { f.classList.remove("invalid"); });
+    document.querySelectorAll(".field-error").forEach(function (p) { p.hidden = true; p.textContent = ""; });
+    coursesError.hidden = true;
+  }
+
+  function fail(fieldName, msg) {
+    var wrap = document.querySelector('[data-field="' + fieldName + '"]');
+    if (wrap) {
+      wrap.classList.add("invalid");
+      var p = wrap.querySelector(".field-error");
+      p.textContent = msg;
+      p.hidden = false;
+      var input = wrap.querySelector("input, select, textarea");
+      if (input) input.focus();
+    }
+    showError(msg);
+    return false;
+  }
+
+  function ageFrom(value) {
+    if (!value) return null;
+    var d = new Date(value + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    var now = new Date();
+    var age = now.getFullYear() - d.getFullYear();
+    var m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age;
+  }
+
+  // Parent block appears as soon as the date of birth says "under 18".
+  document.getElementById("dob").addEventListener("change", function () {
+    var age = ageFrom(this.value);
+    var under = age !== null && age < 18;
+    parentBox.hidden = !under;
+    document.getElementById("parentName").required = under;
+    document.getElementById("parentPhone").required = under;
+  });
+
+  /* ---- courses loaded from the sheet ---- */
+  var AR_CATEGORY = {
+    "Primary School Support": "الدعم المدرسي — الابتدائي",
+    "Middle School Support": "الدعم المدرسي — المتوسط",
+    "High School Support": "الدعم المدرسي — الثانوي",
+    "Kids Language Courses": "دورات اللغات للأطفال",
+    "Adult Language Courses": "دورات اللغات للكبار",
+    "Other Formation Courses": "دورات تكوينية أخرى"
+  };
+
+  fetch(window.YALA_API + "?action=courses")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data || data.ok !== true || !data.categories) throw new Error("bad payload");
+      var box = document.getElementById("course-list");
+      box.innerHTML = "";
+      data.categories.forEach(function (cat) {
+        var group = document.createElement("div");
+        group.className = "course-group";
+        var h = document.createElement("h2");
+        h.textContent = isAR ? (AR_CATEGORY[cat.key] || cat.key) : cat.key;
+        group.appendChild(h);
+        cat.courses.forEach(function (course) {
+          var id = "c-" + course.full.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+          var label = document.createElement("label");
+          label.className = "choice";
+          label.setAttribute("for", id);
+          var input = document.createElement("input");
+          input.type = "checkbox";
+          input.name = "courses";
+          input.value = course.full;
+          input.id = id;
+          var span = document.createElement("span");
+          span.textContent = course.name + " — " + course.fee + " " + T.fee;
+          label.appendChild(input);
+          label.appendChild(span);
+          group.appendChild(label);
+        });
+        box.appendChild(group);
+      });
+    })
+    .catch(function () {
+      document.getElementById("course-list").innerHTML =
+        '<p class="form-error">' + T.errGeneric + "</p>";
+    });
+
+  /* ---- submit ---- */
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    clearErrors();
+
+    var fullName = document.getElementById("fullName").value.trim();
+    var dob = document.getElementById("dob").value;
+    var phone = document.getElementById("phone").value.trim();
+    var email = document.getElementById("email").value.trim();
+    var notes = document.getElementById("notes").value.trim();
+    var consent = document.getElementById("consent").checked;
+    var age = ageFrom(dob);
+    var under18 = age !== null && age < 18;
+    var picked = Array.prototype.map.call(
+      document.querySelectorAll('input[name="courses"]:checked'),
+      function (i) { return i.value; }
+    );
+
+    if (fullName.length < 3) return fail("fullName", T.errName);
+    if (age === null || age < 3 || age > 100) return fail("dob", T.errDob);
+    if (phone.replace(/\D/g, "").length < 8) return fail("phone", T.errPhone);
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return fail("email", T.errEmail);
+    if (!picked.length) {
+      coursesError.textContent = T.errCourses;
+      coursesError.hidden = false;
+      showError(T.errCourses);
+      return false;
+    }
+    if (under18) {
+      var pn = document.getElementById("parentName").value.trim();
+      var pp = document.getElementById("parentPhone").value.replace(/\D/g, "");
+      if (pn.length < 3) return fail("parentName", T.errParent);
+      if (pp.length < 8) return fail("parentPhone", T.errParent);
+    }
+    if (!consent) return fail("consent", T.errConsent);
+
+    var payload = {
+      fullName: fullName,
+      dob: dob,
+      phone: phone,
+      email: email,
+      notes: notes,
+      consent: true,
+      courses: picked,
+      parentName: under18 ? document.getElementById("parentName").value.trim() : "",
+      parentPhone: under18 ? document.getElementById("parentPhone").value.trim() : "",
+      parentRelation: under18 ? document.getElementById("parentRelation").value : "",
+      website: document.getElementById("website").value
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = T.sending;
+
+    fetch(window.YALA_API, {
+      method: "POST",
+      // text/plain keeps the request "simple", so the browser skips the CORS preflight
+      // that Apps Script cannot answer.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.ok) {
+          form.hidden = true;
+          document.getElementById("reg-id").textContent = res.id;
+          document.getElementById("success").hidden = false;
+          document.getElementById("success").scrollIntoView({ block: "center", behavior: "smooth" });
+          return;
+        }
+        var map = {
+          name_required: T.errName,
+          dob_invalid: T.errDob,
+          phone_invalid: T.errPhone,
+          email_invalid: T.errEmail,
+          courses_required: T.errCourses,
+          parent_required: T.errParent,
+          consent_required: T.errConsent,
+          duplicate: T.errDuplicate,
+          too_many: T.errTooMany,
+          rejected: T.errGeneric,
+          server_error: T.errGeneric
+        };
+        showError(map[res.error] || T.errGeneric);
+      })
+      .catch(function () { showError(T.errGeneric); })
+      .then(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = T.submit;
+      });
+    return false;
+  });
+})();
+</script>
+</body>
+</html>

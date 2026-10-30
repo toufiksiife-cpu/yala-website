@@ -170,6 +170,43 @@ a { color: var(--navy); }
 .hours dt { color: var(--muted); }
 .hours dd { margin: 0; font-weight: 700; color: var(--ink); }
 
+/* ---------- forms ---------- */
+.field { margin-block-end: 18px; }
+.field label { display: block; font-weight: 600; margin-block-end: 6px; }
+.field .hint { display: block; font-weight: 400; color: var(--muted); font-size: .85rem; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 12px; font: inherit; color: var(--ink);
+  background: #fff; border: 1px solid #C7D0DC; border-radius: 8px;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--navy); outline: 3px solid rgba(30,69,111,.15); outline-offset: 1px;
+}
+.field textarea { min-height: 88px; resize: vertical; }
+.field-row { display: grid; gap: 0 16px; grid-template-columns: 1fr; }
+@media (min-width: 620px) { .field-row.cols-2 { grid-template-columns: 1fr 1fr; } }
+
+.fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-block-end: 18px; }
+.fieldset legend { font-weight: 700; padding-inline: 8px; }
+.choice { display: flex; align-items: flex-start; gap: 10px; padding-block: 7px; }
+.choice input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--navy); }
+.choice label { font-weight: 400; }
+.course-group { margin-block-start: 10px; }
+.course-group h2 { font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 4px; }
+
+.form-error {
+  border-inline-start: 4px solid #B42318; background: #FEF3F2; color: #7A271A;
+  padding: 12px 14px; border-radius: 8px; margin-block-end: 20px;
+}
+.field.invalid input, .field.invalid select, .field.invalid textarea { border-color: #B42318; }
+.field .field-error { color: #B42318; font-size: .85rem; margin: 6px 0 0; }
+
+.hp { position: absolute; inset-inline-start: -9999px; width: 1px; height: 1px; overflow: hidden; }
+[hidden] { display: none !important; }
+
+.success-box { border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; background: var(--bg-soft); }
+.success-box h2 { margin-block-start: 0; color: var(--navy); }
+.success-box .id { font-weight: 700; font-size: 1.2rem; color: var(--navy); }
+
 /* ---------- footer ---------- */
 .site-footer {
   background: var(--navy-dark); color: #C9D6E6;

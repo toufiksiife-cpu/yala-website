@@ -18,7 +18,7 @@ for page in pages:
     html = page.read_text(encoding="utf-8")
     name = page.name
 
-    for key in re.findall(r'data-i18n(?:-aria)?="([\w.]+)"', html):
+    for key in re.findall(r'data-i18n(?:-aria|-placeholder)?="([\w.]+)"', html):
         used.add(key)
         if key not in en_keys:
             errors.append(f"{name}: missing English string for '{key}'")
