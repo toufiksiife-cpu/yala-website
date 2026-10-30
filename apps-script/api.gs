@@ -160,7 +160,7 @@ function register_(data) {
     return { ok: false, error: 'parent_required' };
   }
 
-  if (cache.get('reg-' + phone)) return { ok: false, error: 'too_many' };
+  if (cache.get('reg-' + phone + '-' + hash_(name))) return { ok: false, error: 'too_many' };
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Registrations');
   if (!sheet) return { ok: false, error: 'server_error' };
@@ -191,7 +191,7 @@ function register_(data) {
   row[col['Status']] = 'Pending';
   sheet.appendRow(row);
 
-  cache.put('reg-' + phone, '1', 600);
+  cache.put('reg-' + phone + '-' + hash_(name), '1', 600);
   cache.put(hourKey, String(sentThisHour + 1), 3600);
 
   return { ok: true, id: row[col['RegistrationID']], under18: under18 };
@@ -231,7 +231,7 @@ function isDuplicate_(sheet, col, name, phone, dob) {
       if (c2['DOB'] !== undefined && rows[i][c2['DOB']] instanceof Date) {
         sameDob = rows[i][c2['DOB']].toDateString() === dob.toDateString();
       }
-      if (samePhone || (sameName && sameDob)) return true;
+      if ((samePhone && sameName) || (sameName && sameDob)) return true;
     }
   }
   return false;
@@ -265,6 +265,14 @@ function clean_(value, max) {
 
 function digits_(value) {
   return String(value === null || value === undefined ? '' : value).replace(/\D/g, '');
+}
+
+// Short stable key for a name (cache keys must stay short).
+function hash_(value) {
+  var h = 5381;
+  var s = String(value || '').toLowerCase();
+  for (var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
 }
 
 // Accepts "yyyy-mm-dd" (the HTML date input) and "dd/mm/yyyy" (typed by a human).
