@@ -94,7 +94,8 @@ a { color: var(--navy); }
   transition: filter .15s ease;
 }
 .btn:hover { filter: brightness(1.06); }
-.btn-primary { background: var(--orange); color: #fff; }
+/* Ink text on brand orange: white would be 2.6:1, unreadable on a phone in daylight. */
+.btn-primary { background: var(--orange); color: var(--ink); }
 .btn-ghost { border-color: currentColor; color: #fff; }
 .btn-outline { border-color: var(--navy); color: var(--navy); }
 .btn-wa { background: #25D366; color: #08331C; }
