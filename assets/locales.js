@@ -63,7 +63,7 @@ window.I18N_EN = {
   "about.teachersTitle": "Our teachers",
   "about.teachersText": "A team of teachers specialised by subject and language. The full list is published once the school year roster is confirmed.",
   "about.placeTitle": "Where we are",
-  "about.placeText": "Abou Tachefine, Tlemcen. Classes run through the week; contact us for the current timetable.",
+  "about.placeText": "Abou Tachefine, Tlemcen. Open Saturday to Thursday, 09:00 – 20:00. Closed Friday.",
 
   // contact
   "contact.title": "Contact — YALA, Tlemcen",
@@ -73,8 +73,11 @@ window.I18N_EN = {
   "contact.call": "Call",
   "contact.addrTitle": "Address",
   "contact.addr": "Abou Tachefine, Tlemcen, Algeria",
-  "contact.hoursTitle": "Class times",
-  "contact.hoursText": "We run classes through the week. Message us and we will confirm the current schedule for your course.",
+  "contact.hoursTitle": "Opening hours",
+  "contact.hoursText": "Message us on WhatsApp and we will confirm the class times for your course.",
+  "hours.days": "Saturday to Thursday",
+  "hours.friday": "Friday",
+  "hours.closed": "Closed",
   "contact.followTitle": "Follow the academy",
 
   // 404

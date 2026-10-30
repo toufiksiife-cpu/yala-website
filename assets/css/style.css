@@ -160,12 +160,21 @@ a { color: var(--navy); }
 }
 .map-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
 
+/* ---------- hours ---------- */
+.hours { margin: 0; display: grid; gap: 10px; }
+.hours > div {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding-block-end: 7px; border-block-end: 1px dashed var(--line);
+}
+.hours dt { color: var(--muted); }
+.hours dd { margin: 0; font-weight: 700; color: var(--ink); }
+
 /* ---------- footer ---------- */
 .site-footer {
   background: var(--navy-dark); color: #C9D6E6;
   padding-block: 40px 28px; margin-block-start: 0;
 }
-.site-footer a { color: #fff; }
+.site-footer a { color: #fff; overflow-wrap: anywhere; }
 .site-footer .cols { display: grid; gap: 28px; }
 @media (min-width: 760px) { .site-footer .cols { grid-template-columns: 2fr 1fr 1fr; } }
 .site-footer h3 { margin: 0 0 10px; font-size: .9rem; text-transform: uppercase; letter-spacing: .08em; color: #fff; }
