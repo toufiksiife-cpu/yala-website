@@ -35,6 +35,12 @@ for page in pages:
         if not (root / ref).exists():
             errors.append(f"{name}: broken local reference '{ref}'")
 
+    for block in re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S):
+        try:
+            json.loads(block)
+        except json.JSONDecodeError as exc:
+            errors.append(f"{name}: invalid JSON-LD ({exc})")
+
 unused = en_keys - used
 if unused:
     errors.append(f"locales.js has unused keys: {sorted(unused)}")
