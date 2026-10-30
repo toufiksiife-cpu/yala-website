@@ -3,6 +3,7 @@
 window.I18N_EN = {
   // header / footer
   "nav.home": "Home",
+  "nav.courses": "Courses",
   "nav.about": "About",
   "nav.contact": "Contact",
   "nav.switch": "العربية",
@@ -44,9 +45,17 @@ window.I18N_EN = {
   "home.locText": "Abou Tachefine, Tlemcen, Algeria.",
   "home.locCta": "See the map",
 
+  // courses
+  "courses.title": "Courses and prices — YALA, Tlemcen",
+  "courses.h1": "Courses and prices",
+  "courses.lead": "School support at every level, languages for children and adults, and training courses. Prices are monthly, in Algerian dinars.",
+  "courses.loading": "Loading courses…",
+  "courses.ctaTitle": "Not sure which course fits?",
+  "courses.ctaText": "Tell us the student's level and we will suggest the right course before you register.",
+  "courses.cta": "Ask us on WhatsApp",
+
   // about
-  "about.title": "About — YALA, Yaghmoracen Academy of Languages and Arts",
-  "about.h1": "About the academy",
+  "about.title": "About — YALA, Yaghmoracen Academy of Languages and Arts",  "about.h1": "About the academy",
   "about.lead": "A private language and academic support school in Tlemcen, built around one idea: skills that are actually usable.",
   "about.storyTitle": "Our story",
   "about.story1": "YALA — Yaghmoracen Academy of Languages and Arts — opened in Tlemcen to give students what school alone rarely provides: focused support in the subjects they struggle with, and language training that leads somewhere.",

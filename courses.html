@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-title="courses.title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الدورات والأسعار — YALA، تلمسان</title>
+<meta name="description" content="دورات YALA في تلمسان: دعم مدرسي، لغات للأطفال والكبار، ودورات تكوينية — مع السعر الشهري لكل دورة.">
+<meta property="og:title" content="Courses and prices — YALA, Tlemcen">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/img/og-image.png">
+<meta name="theme-color" content="#1E456F">
+<link rel="icon" href="assets/img/favicon.png">
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  .cat-block { margin-block-end: 40px; }
+  .cat-block h2 { margin-block-end: 4px; }
+  .cat-block .count { margin: 0 0 16px; color: var(--muted); font-size: .9rem; }
+  .course .meta { font-size: .85rem; color: var(--muted); margin: 0 0 10px; }
+  .course .fee { margin: 0; font-weight: 700; color: var(--navy); }
+  .course .fee small { font-weight: 400; color: var(--muted); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">تخطَّ إلى المحتوى</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/img/logo.webp" width="600" height="183" alt="YALA — أكاديمية يغمراسن للغات والفنون">
+    </a>
+    <nav id="site-nav" class="nav-links" aria-label="القائمة الرئيسية">
+      <a href="index.html" data-i18n="nav.home">الرئيسية</a>
+      <a href="courses.html" aria-current="page" data-i18n="nav.courses">الدورات</a>
+      <a href="about.html" data-i18n="nav.about">من نحن</a>
+      <a href="contact.html" data-i18n="nav.contact">اتصل بنا</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" data-i18n-aria="nav.menu" aria-label="القائمة">☰</button>
+      <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch">EN</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <h1 data-i18n="courses.h1">الدورات والأسعار</h1>
+      <p class="lead" data-i18n="courses.lead">دعم مدرسي في كل المستويات، لغات للأطفال والكبار، ودورات تكوينية. الأسعار شهريّة بالدينار الجزائري.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap" id="catalog" aria-live="polite">
+      <p data-i18n="courses.loading">جارٍ تحميل الدورات…</p>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="wrap">
+      <h2 data-i18n="courses.ctaTitle">غير متأكد أي دورة تناسبك؟</h2>
+      <p class="section-note" data-i18n="courses.ctaText">أخبرنا بمستوى الطالب وسنقترح الدورة المناسبة قبل التسجيل.</p>
+      <a class="btn btn-primary" href="https://wa.me/213652783647" rel="noopener" data-i18n="courses.cta">اسألنا على واتساب</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h3>YALA</h3>
+        <p data-i18n="footer.tag">دعم مدرسي وبرامج لغات مكثفة في تلمسان.</p>
+        <p>أبو تشفين، تلمسان، الجزائر</p>
+        <p><a href="tel:+213652783647">+213 652 78 36 47</a></p>
+      </div>
+      <div>
+        <h3 data-i18n="footer.contact">اتصل</h3>
+        <ul>
+          <li><a href="https://wa.me/213652783647" rel="noopener">WhatsApp</a></li>
+          <li><a href="mailto:yaghmoracen.academy@gmail.com" dir="ltr">yaghmoracen.academy@gmail.com</a></li>
+          <li><a href="contact.html" data-i18n="nav.contact">اتصل بنا</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 data-i18n="footer.follow">تابعنا</h3>
+        <ul>
+          <li><a href="https://www.facebook.com/profile.php?id=61581667646245" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://www.instagram.com/yaghmoracen.academy/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.tiktok.com/@yaghmoracen.acade" target="_blank" rel="noopener">TikTok</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="legal">© <span id="year">2026</span> — <span data-i18n="footer.rights">أكاديمية يغمراسن للغات والفنون</span></p>
+  </div>
+</footer>
+
+<script src="assets/locales.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  // Filled in once the Apps Script web app is deployed. See docs/phase2-api.md.
+  var API_URL = "";
+
+  var isAR = document.documentElement.lang !== "en";
+  var T = isAR
+    ? { error: "تعذّر تحميل الدورات حالياً.", retry: "راسلنا على واتساب", loading: "جارٍ تحميل الدورات…", month: "شهرياً", currency: "دج", room: "قاعة", count: function (n) { return n + " دورة"; } }
+    : { error: "Courses could not be loaded right now.", retry: "Message us on WhatsApp", loading: "Loading courses…", month: "per month", currency: "DZD", room: "Room", count: function (n) { return n + (n === 1 ? " course" : " courses"); } };
+
+  var AR_CATEGORY = {
+    "Primary School Support": "الدعم المدرسي — الابتدائي",
+    "Middle School Support": "الدعم المدرسي — المتوسط",
+    "High School Support": "الدعم المدرسي — الثانوي",
+    "Kids Language Courses": "دورات اللغات للأطفال",
+    "Adult Language Courses": "دورات اللغات للكبار",
+    "Other Formation Courses": "دورات تكوينية أخرى"
+  };
+
+  var box = document.getElementById("catalog");
+
+  function group(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  function fail(msg) {
+    box.innerHTML = '<div class="card"><h3>' + T.error + '</h3><p style="margin-block:12px"><a class="btn btn-primary" href="https://wa.me/213652783647" rel="noopener">' + T.retry + '</a></p></div>';
+    if (msg) console.warn("[courses]", msg);
+  }
+
+  function render(data) {
+    box.innerHTML = "";
+    data.categories.forEach(function (cat) {
+      var section = document.createElement("div");
+      section.className = "cat-block";
+
+      var h2 = document.createElement("h2");
+      h2.textContent = isAR ? (AR_CATEGORY[cat.key] || cat.key) : cat.key;
+      section.appendChild(h2);
+
+      var count = document.createElement("p");
+      count.className = "count";
+      count.textContent = T.count(cat.courses.length);
+      section.appendChild(count);
+
+      var grid = document.createElement("div");
+      grid.className = "grid cols-2";
+
+      cat.courses.forEach(function (course) {
+        var card = document.createElement("article");
+        card.className = "card course";
+
+        var h3 = document.createElement("h3");
+        h3.textContent = course.name;
+        card.appendChild(h3);
+
+        // The sheet stores "Room 1"; Arabic wants "قاعة 1".
+        var room = course.room ? (isAR ? course.room.replace(/^Room\s*/i, "") : course.room) : "";
+        room = room ? (isAR ? T.room + " " + room : room) : "";
+
+        var bits = [course.subject, course.level, room].filter(function (x) { return x; });
+        var meta = document.createElement("p");
+        meta.className = "meta";
+        meta.textContent = bits.join(" · ");
+        card.appendChild(meta);
+
+        var fee = document.createElement("p");
+        fee.className = "fee";
+        fee.innerHTML = group(course.fee) + " <small>" + T.currency + " " + T.month + "</small>";
+        card.appendChild(fee);
+
+        grid.appendChild(card);
+      });
+
+      section.appendChild(grid);
+      box.appendChild(section);
+    });
+  }
+
+  if (!API_URL) { fail("API_URL is empty"); return; }
+
+  fetch(API_URL + "?action=courses")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data || data.ok !== true || !data.categories || !data.categories.length) throw new Error(data && data.error || "empty");
+      render(data);
+    })
+    .catch(function (err) { fail(err.message); });
+})();
+</script>
+</body>
+</html>
