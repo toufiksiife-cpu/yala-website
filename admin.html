@@ -55,6 +55,14 @@
   .pay-form input, .pay-form select, .pay-form textarea { width: 100%; padding: 9px 10px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; background: #fff; }
   .pay-form .actions { display: flex; gap: 8px; margin-block-start: 14px; }
   @media (max-width: 560px) { .pay-form .grid { grid-template-columns: 1fr; } }
+
+  /* Phase 6: overview */
+  .dash { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 18px 0; }
+  .stat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 14px 16px; }
+  .stat b { display: block; font-size: 1.6rem; line-height: 1.2; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .stat span { font-size: .8rem; color: var(--muted); }
+  .dash-courses { grid-column: 1 / -1; margin: 0; font-size: .85rem; color: var(--muted); }
+  @media (max-width: 560px) { .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
@@ -85,6 +93,13 @@
   </div>
 
   <div id="app" hidden>
+    <section id="dash" class="dash" aria-label="Overview" hidden>
+      <div class="stat"><b id="dash-pending">0</b><span>Pending registrations</span></div>
+      <div class="stat"><b id="dash-students">0</b><span>Active students</span></div>
+      <div class="stat"><b id="dash-money">0</b><span>DZD this month</span></div>
+      <p id="dash-courses" class="dash-courses"></p>
+    </section>
+
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="Registrations" aria-selected="true">Registrations</button>
       <button class="tab" role="tab" data-tab="Students" aria-selected="false">Students</button>
@@ -210,6 +225,53 @@
   function todayISO() {
     var d = new Date();
     return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+
+  function num(value) {
+    var n = Number(String(value === null || value === undefined ? "" : value).replace(/[^\d.-]/g, ""));
+    return isFinite(n) ? n : 0;
+  }
+
+  // Three lists, counted in the browser: no new Sheets code, no new deployment.
+  function dashboard() {
+    if (!state.token) return;
+    var month = todayISO().slice(0, 7);
+    Promise.all(["Registrations", "Students", "Payments"].map(function (tab) {
+      return ask({ action: "list", tab: tab, idToken: state.token }).catch(function () { return null; });
+    })).then(function (res) {
+      if (!res[0] || !res[1] || !res[2] || !res[0].ok || !res[1].ok || !res[2].ok) return;
+
+      var pending = 0;
+      res[0].rows.forEach(function (row) {
+        if (/^pending$/i.test(String(rowValue(row, /^status$/i)).trim())) pending++;
+      });
+
+      var active = 0;
+      var courses = {};
+      res[1].rows.forEach(function (row) {
+        var status = String(rowValue(row, /^status$/i)).trim().toLowerCase();
+        if (!status || status === "active") active++;
+        String(rowValue(row, /^courses$/i)).split(",").forEach(function (course) {
+          course = course.trim();
+          if (course) courses[course] = (courses[course] || 0) + 1;
+        });
+      });
+
+      var money = 0;
+      res[2].rows.forEach(function (row) {
+        if (String(rowValue(row, /^date$/i)).slice(0, 7) === month) money += num(rowValue(row, /^amount$/i));
+      });
+
+      el("dash-pending").textContent = pending;
+      el("dash-students").textContent = active;
+      el("dash-money").textContent = money.toLocaleString("en-US");
+
+      var top = Object.keys(courses).sort(function (a, b) { return courses[b] - courses[a]; }).slice(0, 6);
+      el("dash-courses").textContent = top.length
+        ? "By course: " + top.map(function (c) { return c + " (" + courses[c] + ")"; }).join(" · ")
+        : "No course enrolled yet.";
+      show(el("dash"), true);
+    });
   }
 
   function actionCell(row) {
@@ -371,6 +433,7 @@
     show(el("signin"), false);
     show(el("app"), true);
     load("Registrations");
+    dashboard();
   }
 
   /* ---------- write actions ---------- */
@@ -426,6 +489,7 @@
         if (res.warnings && res.warnings.length) text += " " + res.warnings.join(" ");
         notice(text, res.warnings && res.warnings.length ? "warn" : "ok");
         load();
+        dashboard();
       })
       .catch(function () {
         btn.disabled = false;
@@ -473,6 +537,7 @@
         state.payStudent = null;
         notice("Payment " + (res.paymentId || "") + " recorded: " + res.amount + " DZD for " + (res.studentName || "student") + " on " + res.date + ".", "ok");
         if (state.tab === "Payments") load();
+        dashboard();
       })
       .catch(function () {
         save.disabled = false;
@@ -575,9 +640,11 @@
     var tab = e.target.closest(".tab[data-tab]");
     if (tab) return load(tab.dataset.tab);
     if (e.target.closest("#signout")) return signOut("");
-    if (e.target.closest("#refresh")) return load();
-    if (e.target.closest("#check")) return checkSheet();
-    if (e.target.closest("#pay-cancel")) {
+    if (e.target.closest("#refresh")) {
+      dashboard();
+      return load();
+    }
+    if (e.target.closest("#check")) return checkSheet();    if (e.target.closest("#pay-cancel")) {
       state.payStudent = null;
       show(el("pay-form"), false);
       return;
