@@ -253,10 +253,10 @@ var FIELDS = {
   },
   Teachers: {
     id: ['teacherid', 'id'],
-    name: ['fullname', 'name', 'teachername'],
+    name: ['fullname', 'name', 'teachername', 'teacher'],
     phone: ['phone', 'phonenumber', 'telephone', 'mobile'],
     email: ['email', 'mail'],
-    courses: ['courses', 'course'],
+    courses: ['courses', 'course', 'subject', 'subjects', 'specialty', 'speciality', 'modules'],
     status: ['status'],
     joined: ['joinedon', 'joined', 'startdate', 'since'],
     notes: ['notes', 'note']
@@ -268,6 +268,7 @@ function schema_() {
   var tabs = {};
   var problems = [];
   var names = ['Registrations', 'Students', 'Enrollments', 'Payments'];
+  if (ss.getSheetByName('Teachers')) names.push('Teachers');
 
   for (var t = 0; t < names.length; t++) {
     var name = names[t];
@@ -278,6 +279,7 @@ function schema_() {
     var need = name === 'Students' ? ['name']
       : name === 'Enrollments' ? ['studentId', 'course']
       : name === 'Payments' ? ['amount']
+      : name === 'Teachers' ? ['name']
       : ['id', 'status'];
     for (var f = 0; f < need.length; f++) {
       if (!sheet) { problems.push(name + ' tab is missing'); break; }
@@ -565,11 +567,14 @@ function addTeacher_(body) {
       ['joined', joined],
       ['notes', clean_(body.notes, 300)]
     ], 'TCH');
-    return {
-      ok: true,
-      teacherId: id,
-      warnings: id ? [] : ['Teachers has no ID column, so the teacher has no TeacherID.']
-    };
+
+    var warnings = [];
+    if (!id) warnings.push('Teachers has no ID column, so the teacher has no TeacherID.');
+    if (chosen.length && colOf_(head, 'courses', 'Teachers') === -1) {
+      warnings.push('The Teachers sheet has no column for the courses, so they were not saved. Columns found: ' +
+        head.filter(function (h) { return h !== ''; }).join(', ') + '.');
+    }
+    return { ok: true, teacherId: id, warnings: warnings };
   } finally {
     lock.releaseLock();
   }
