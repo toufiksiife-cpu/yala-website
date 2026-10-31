@@ -255,10 +255,11 @@ var FIELDS = {
     id: ['teacherid', 'id'],
     name: ['fullname', 'name', 'teachername', 'teacher'],
     phone: ['phone', 'phonenumber', 'telephone', 'mobile'],
+    whatsapp: ['whatsapp'],
     email: ['email', 'mail'],
-    courses: ['courses', 'course', 'subject', 'subjects', 'specialty', 'speciality', 'modules'],
+    courses: ['coursesassigned', 'courses', 'course', 'specialties', 'specialities', 'specialty', 'speciality', 'modules', 'subject', 'subjects'],
     status: ['status'],
-    joined: ['joinedon', 'joined', 'startdate', 'since'],
+    joined: ['joinedon', 'joined', 'startdate', 'since', 'registeredat'],
     notes: ['notes', 'note']
   }
 };
@@ -558,11 +559,13 @@ function addTeacher_(body) {
       if (samePhone || sameMail) return { ok: false, error: 'teacher_exists', name: name };
     }
 
+    var iCourses = colAny_(head, FIELDS.Teachers.courses);
+
     var id = put_(sheet, 'Teachers', [
       ['name', name],
       ['phone', phone],
+      ['whatsapp', phone],
       ['email', email],
-      ['courses', chosen.join(', ')],
       ['status', 'Active'],
       ['joined', joined],
       ['notes', clean_(body.notes, 300)]
@@ -570,9 +573,13 @@ function addTeacher_(body) {
 
     var warnings = [];
     if (!id) warnings.push('Teachers has no ID column, so the teacher has no TeacherID.');
-    if (chosen.length && colOf_(head, 'courses', 'Teachers') === -1) {
-      warnings.push('The Teachers sheet has no column for the courses, so they were not saved. Columns found: ' +
-        head.filter(function (h) { return h !== ''; }).join(', ') + '.');
+    if (chosen.length) {
+      if (iCourses === -1) {
+        warnings.push('The Teachers sheet has no column for the courses, so they were not saved. Columns found: ' +
+          head.filter(function (h) { return h !== ''; }).join(', ') + '.');
+      } else {
+        sheet.getRange(sheet.getLastRow(), iCourses + 1).setValue(chosen.join(', '));
+      }
     }
     return { ok: true, teacherId: id, warnings: warnings };
   } finally {
@@ -1024,6 +1031,18 @@ function colOf_(head, field, tab) {
   for (var i = 0; i < head.length; i++) {
     var h = String(head[i]).toLowerCase().replace(/[^a-z0-9]/g, '');
     if (aliases.indexOf(h) !== -1) return i;
+  }
+  return -1;
+}
+
+// Same as colOf_, but tries the names in the order given instead of the
+// sheet's column order, so a preferred header wins over a fallback one.
+function colAny_(head, names) {
+  for (var n = 0; n < names.length; n++) {
+    for (var i = 0; i < head.length; i++) {
+      var h = String(head[i]).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (h === names[n]) return i;
+    }
   }
   return -1;
 }

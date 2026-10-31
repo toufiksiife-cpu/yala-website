@@ -49,6 +49,8 @@ The **Teachers** tab is created on first use:
 
 `TeacherID | FullName | Phone | Email | Courses | Status | JoinedOn | Notes`
 
+An existing tab is used as-is: the name column may be `FullName`/`Name`/`Teacher`, the course column `CoursesAssigned`/`Courses`/`Subject`/`Specialties`, and `Phone` is copied into `WhatsApp` when that column exists.
+
 Set `Status` to `Inactive` in the sheet to hide a teacher from the class dropdown.
 
 ## Weekly class teacher
