@@ -21,7 +21,7 @@ var SPREADSHEET_ID = '1-rQ6H-NzreQ5DAcgqykpGswJ4DXveWP1PrngJbEr3fk';
 var CLIENT_ID = '371709392677-1ols2p8ivea9grdmp6ff5giojdof45lj.apps.googleusercontent.com';
 
 var STAFF_SHEET = 'Staff';
-var ALLOWED_TABS = ['Registrations', 'Students', 'Payments', 'Attendance'];
+var ALLOWED_TABS = ['Registrations', 'Students', 'Payments', 'Teachers', 'Attendance'];
 var MAX_ROWS = 500;
 var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -57,6 +57,8 @@ function doPost(e) {
     if (action === 'roster') return json_(roster_(body));
     if (action === 'attend') return json_(attend_(body, email));
     if (action === 'addSession') return json_(addSession_(body));
+    if (action === 'addStudent') return json_(addStudent_(body));
+    if (action === 'addTeacher') return json_(addTeacher_(body));
     return json_({ ok: false, error: 'unknown_action' });
   } catch (err) {
     return json_({ ok: false, error: 'server_error' });
@@ -127,7 +129,9 @@ function staffSheet_() {
 function list_(tab) {
   if (ALLOWED_TABS.indexOf(tab) === -1) return { ok: false, error: 'unknown_tab' };
 
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(tab);
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  if (tab === 'Teachers') ensureSheet_(ss, 'Teachers', TEACHERS_HEADERS);
+  var sheet = ss.getSheetByName(tab);
   if (!sheet) return { ok: false, error: 'missing_tab' };
 
   var total = sheet.getLastRow();
@@ -245,6 +249,16 @@ var FIELDS = {
     status: ['status'],
     by: ['recordedby', 'receivedby', 'staff', 'createdby'],
     at: ['recordedat', 'createdat', 'timestamp']
+  },
+  Teachers: {
+    id: ['teacherid', 'id'],
+    name: ['fullname', 'name', 'teachername'],
+    phone: ['phone', 'phonenumber', 'telephone', 'mobile'],
+    email: ['email', 'mail'],
+    courses: ['courses', 'course'],
+    status: ['status'],
+    joined: ['joinedon', 'joined', 'startdate', 'since'],
+    notes: ['notes', 'note']
   }
 };
 
@@ -411,6 +425,202 @@ function findStudent_(sheet, head, name, phone, dob) {
   return null;
 }
 
+/* ================= STAFF REGISTRATION ================= */
+
+var TEACHERS_HEADERS = ['TeacherID', 'FullName', 'Phone', 'Email', 'Courses', 'Status', 'JoinedOn', 'Notes'];
+
+// Staff typing the row is the approval, so this writes the student as Active
+// instead of going through Registrations.
+function addStudent_(body) {
+  var name = clean_(body.name, 80);
+  if (!name) return { ok: false, error: 'missing_name' };
+
+  var phone = digits_(body.phone);
+  if (phone.length < 8 || phone.length > 15) return { ok: false, error: 'invalid_phone' };
+
+  var email = clean_(body.email, 120).toLowerCase();
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return { ok: false, error: 'invalid_email' };
+
+  var dob = null;
+  if (String(body.dob || '').trim()) {
+    dob = parseDate_(body.dob);
+    if (!dob) return { ok: false, error: 'invalid_dob' };
+  }
+  var age = dob ? ageOf_(dob) : '';
+
+  var parentName = clean_(body.parentName, 80);
+  var parentPhone = digits_(body.parentPhone);
+  if (age !== '' && age < 18 && (parentName.length < 3 || parentPhone.length < 8)) {
+    return { ok: false, error: 'parent_required' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var chosen = courseList_(body.courses, courses_(ss));
+  if (chosen === null) return { ok: false, error: 'unknown_course' };
+  if (!chosen.length) return { ok: false, error: 'missing_course' };
+
+  var students = ss.getSheetByName('Students');
+  if (!students) return { ok: false, error: 'missing_tab', tab: 'Students' };
+  var head = headerRow_(students);
+  if (colOf_(head, 'name', 'Students') === -1) return missing_('Students', 'FullName', head);
+
+  var existing = findStudent_(students, head, name, phone, dob);
+  if (existing) return { ok: false, error: 'student_exists', studentId: existing.id, name: existing.name };
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    var again = findStudent_(students, head, name, phone, dob);
+    if (again) return { ok: false, error: 'student_exists', studentId: again.id, name: again.name };
+
+    var warnings = [];
+    var studentId = put_(students, 'Students', [
+      ['name', name],
+      ['phone', phone],
+      ['email', email],
+      ['dob', dob || ''],
+      ['age', age],
+      ['parentName', parentName],
+      ['parentPhone', parentPhone],
+      ['parentRelation', clean_(body.parentRelation, 30)],
+      ['under18', age === '' ? '' : (age < 18 ? 'YES' : 'NO')],
+      ['courses', chosen.join(', ')],
+      ['status', 'Active'],
+      ['created', new Date()]
+    ], 'STU');
+    if (!studentId) warnings.push('Students has no ID column, so the student has no StudentID.');
+
+    var enrollments = ss.getSheetByName('Enrollments');
+    var ids = [];
+    if (!enrollments) {
+      warnings.push('No Enrollments tab: the courses were not recorded there.');
+    } else {
+      var eHead = headerRow_(enrollments);
+      if (colOf_(eHead, 'studentId', 'Enrollments') === -1 || colOf_(eHead, 'course', 'Enrollments') === -1) {
+        warnings.push('Enrollments has no StudentID/Course column: the courses were not recorded there.');
+      } else {
+        for (var c = 0; c < chosen.length; c++) {
+          ids.push(put_(enrollments, 'Enrollments', [
+            ['studentId', studentId],
+            ['course', chosen[c]],
+            ['fee', feeOf_(chosen[c])],
+            ['start', new Date()],
+            ['status', 'Active']
+          ], 'ENR') || '');
+        }
+      }
+    }
+    return { ok: true, studentId: studentId, enrollments: ids, warnings: warnings };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function addTeacher_(body) {
+  var name = clean_(body.name, 80);
+  if (!name) return { ok: false, error: 'missing_name' };
+
+  var phone = digits_(body.phone);
+  if (phone && (phone.length < 8 || phone.length > 15)) return { ok: false, error: 'invalid_phone' };
+
+  var email = clean_(body.email, 120).toLowerCase();
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return { ok: false, error: 'invalid_email' };
+  if (!phone && !email) return { ok: false, error: 'missing_contact' };
+
+  var joined = new Date();
+  if (String(body.joined || '').trim()) {
+    joined = parseDate_(body.joined);
+    if (!joined) return { ok: false, error: 'invalid_date' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var chosen = courseList_(body.courses, courses_(ss));
+  if (chosen === null) return { ok: false, error: 'unknown_course' };
+
+  var sheet = ensureSheet_(ss, 'Teachers', TEACHERS_HEADERS);
+  var head = headerRow_(sheet);
+  if (colOf_(head, 'name', 'Teachers') === -1) return missing_('Teachers', 'FullName', head);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    var iName = colOf_(head, 'name', 'Teachers');
+    var iPhone = colOf_(head, 'phone', 'Teachers');
+    var iMail = colOf_(head, 'email', 'Teachers');
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][iName] || '').trim().toLowerCase() !== name.toLowerCase()) continue;
+      var samePhone = iPhone !== -1 && phone !== '' && digits_(values[i][iPhone]) === phone;
+      var sameMail = iMail !== -1 && email !== '' && String(values[i][iMail] || '').trim().toLowerCase() === email;
+      if (samePhone || sameMail) return { ok: false, error: 'teacher_exists', name: name };
+    }
+
+    var id = put_(sheet, 'Teachers', [
+      ['name', name],
+      ['phone', phone],
+      ['email', email],
+      ['courses', chosen.join(', ')],
+      ['status', 'Active'],
+      ['joined', joined],
+      ['notes', clean_(body.notes, 300)]
+    ], 'TCH');
+    return {
+      ok: true,
+      teacherId: id,
+      warnings: id ? [] : ['Teachers has no ID column, so the teacher has no TeacherID.']
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function readTeachers_(ss) {
+  var sheet = ss.getSheetByName('Teachers');
+  if (!sheet) return [];
+  var head = headerRow_(sheet);
+  var iName = colOf_(head, 'name', 'Teachers');
+  var iStatus = colOf_(head, 'status', 'Teachers');
+  if (iName === -1) return [];
+
+  var out = [];
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var name = String(values[i][iName] || '').trim();
+    if (!name || out.indexOf(name) !== -1) continue;
+    if (iStatus !== -1 && /^(inactive|stopped)$/i.test(String(values[i][iStatus] || '').trim())) continue;
+    out.push(name);
+  }
+  return out;
+}
+
+// Ticked course names are matched against Config so the sheet keeps one spelling.
+// Returns null when a name is not in Config.
+function courseList_(raw, known) {
+  var parts = (raw instanceof Array ? raw : String(raw === null || raw === undefined ? '' : raw).split(','))
+    .map(function (s) { return String(s).trim(); })
+    .filter(function (s) { return s !== ''; });
+
+  var out = [];
+  for (var i = 0; i < parts.length; i++) {
+    var match = '';
+    for (var k = 0; k < known.length; k++) {
+      if (known[k].toLowerCase() === parts[i].toLowerCase()) match = known[k];
+    }
+    if (!match && known.length) return null;
+    match = match || parts[i].slice(0, 60);
+    if (out.indexOf(match) === -1) out.push(match);
+  }
+  return out;
+}
+
+function ageOf_(dob) {
+  var today = new Date();
+  var age = today.getFullYear() - dob.getFullYear();
+  var months = today.getMonth() - dob.getMonth();
+  if (months < 0 || (months === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
 /* ================= RECORD A PAYMENT ================= */
 
 function pay_(body, email) {
@@ -500,7 +710,7 @@ function sessions_() {
       colOf_(head, 'day', 'Sessions') === -1 || colOf_(head, 'start', 'Sessions') === -1) {
     return missing_('Sessions', 'SessionID/Course/Day/StartTime', head);
   }
-  return { ok: true, sessions: readSessions_(ss), courses: courses_(ss) };
+  return { ok: true, sessions: readSessions_(ss), courses: courses_(ss), teachers: readTeachers_(ss) };
 }
 
 function readSessions_(ss) {
@@ -875,10 +1085,14 @@ function parseDate_(value) {
   var s = String(value || '').trim();
   var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   var eu = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  var d = null;
-  if (iso) d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-  else if (eu) d = new Date(Number(eu[3]), Number(eu[2]) - 1, Number(eu[1]));
-  if (!d || isNaN(d.getTime())) return null;
+  var y, mo, da, d = null;
+  if (iso) { y = +iso[1]; mo = +iso[2]; da = +iso[3]; }
+  else if (eu) { y = +eu[3]; mo = +eu[2]; da = +eu[1]; }
+  if (y === undefined) return null;
+  d = new Date(y, mo - 1, da);
+  if (isNaN(d.getTime())) return null;
+  // Reject 2010-13-40: Date would silently roll it over into 2011.
+  if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da) return null;
   if (d > new Date()) return null;
   return d;
 }

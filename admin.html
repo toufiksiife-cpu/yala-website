@@ -54,6 +54,10 @@
   .pay-form label { display: block; font-size: .82rem; font-weight: 600; margin-block: 10px 4px; }
   .pay-form input, .pay-form select, .pay-form textarea { width: 100%; padding: 9px 10px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; background: #fff; }
   .pay-form .actions { display: flex; gap: 8px; margin-block-start: 14px; }
+  .pay-form fieldset { border: 1px solid #C7D0DC; border-radius: 6px; margin: 12px 0 0; padding: 8px 12px 12px; }
+  .pay-form legend { font-size: .82rem; font-weight: 600; padding-inline: 4px; }
+  .pay-form .courses label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 14px 4px 0; font-weight: 600; }
+  .pay-form .courses input { width: 17px; height: 17px; accent-color: var(--navy); }
   @media (max-width: 560px) { .pay-form .grid { grid-template-columns: 1fr; } }
 
   /* Phase 6: overview */
@@ -118,6 +122,7 @@
       <button class="tab" role="tab" data-tab="Registrations" aria-selected="true">Registrations</button>
       <button class="tab" role="tab" data-tab="Students" aria-selected="false">Students</button>
       <button class="tab" role="tab" data-tab="Payments" aria-selected="false">Payments</button>
+      <button class="tab" role="tab" data-tab="Teachers" aria-selected="false">Teachers</button>
       <button class="tab" role="tab" data-tab="Attendance" aria-selected="false">Attendance</button>
       <button class="tab" role="tab" id="signout" style="margin-inline-start:auto">Sign out</button>
     </div>
@@ -153,6 +158,82 @@
       <div class="actions">
         <button class="btn btn-primary" type="submit" id="pay-save">Save payment</button>
         <button class="btn btn-outline" type="button" id="pay-cancel">Cancel</button>
+      </div>
+    </form>
+
+    <form id="stu-form" class="pay-form" hidden>
+      <h2>Add a student</h2>
+      <div class="grid">
+        <div>
+          <label for="st-name">Full name</label>
+          <input id="st-name" type="text" maxlength="80" required>
+        </div>
+        <div>
+          <label for="st-phone">Phone</label>
+          <input id="st-phone" type="tel" inputmode="tel" maxlength="20" required>
+        </div>
+        <div>
+          <label for="st-email">Email (optional)</label>
+          <input id="st-email" type="email" maxlength="120">
+        </div>
+        <div>
+          <label for="st-dob">Date of birth (optional)</label>
+          <input id="st-dob" type="date">
+        </div>
+        <div>
+          <label for="st-pname">Parent name (needed if under 18)</label>
+          <input id="st-pname" type="text" maxlength="80">
+        </div>
+        <div>
+          <label for="st-pphone">Parent phone (needed if under 18)</label>
+          <input id="st-pphone" type="tel" inputmode="tel" maxlength="20">
+        </div>
+        <div>
+          <label for="st-prel">Relationship</label>
+          <input id="st-prel" type="text" maxlength="30" placeholder="Father, Mother…">
+        </div>
+      </div>
+      <fieldset class="courses">
+        <legend>Courses</legend>
+        <div id="st-courses"></div>
+      </fieldset>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" id="stu-save">Add student</button>
+        <button class="btn btn-outline" type="button" id="stu-cancel">Cancel</button>
+      </div>
+    </form>
+
+    <form id="teach-form" class="pay-form" hidden>
+      <h2>Add a teacher</h2>
+      <div class="grid">
+        <div>
+          <label for="te-name">Full name</label>
+          <input id="te-name" type="text" maxlength="80" required>
+        </div>
+        <div>
+          <label for="te-phone">Phone</label>
+          <input id="te-phone" type="tel" inputmode="tel" maxlength="20">
+        </div>
+        <div>
+          <label for="te-email">Email</label>
+          <input id="te-email" type="email" maxlength="120">
+        </div>
+        <div>
+          <label for="te-joined">Started on</label>
+          <input id="te-joined" type="date">
+        </div>
+        <div>
+          <label for="te-notes">Notes (optional)</label>
+          <input id="te-notes" type="text" maxlength="300">
+        </div>
+      </div>
+      <fieldset class="courses">
+        <legend>Courses (optional)</legend>
+        <div id="te-courses"></div>
+      </fieldset>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" id="teach-save">Add teacher</button>
+        <button class="btn btn-outline" type="button" id="teach-cancel">Cancel</button>
       </div>
     </form>
 
@@ -208,7 +289,7 @@
           </div>
           <div>
             <label for="s-teacher">Teacher (optional)</label>
-            <input id="s-teacher" type="text" maxlength="60">
+            <select id="s-teacher"><option value="">—</option></select>
           </div>
           <div>
             <label for="s-room">Room (optional)</label>
@@ -226,6 +307,7 @@
       <input id="search" type="search" placeholder="Search name, phone, anything…" aria-label="Search">
       <button class="btn btn-outline" id="refresh" type="button">Refresh</button>
       <button class="btn btn-outline" id="check" type="button">Check spreadsheet</button>
+      <button class="btn btn-primary" id="add-new" type="button" hidden>Add</button>
       <span class="status" id="status" aria-live="polite"></span>
     </div>
 
@@ -246,7 +328,7 @@
 
   var API = window.YALA_ADMIN_API;
   var TOKEN_KEY = "yala-admin-token";
-  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [] };
+  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [], teachers: [] };
 
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -473,6 +555,8 @@
       state.tab = tab;
       state.payStudent = null;
       show(el("pay-form"), false);
+      show(el("stu-form"), false);
+      show(el("teach-form"), false);
       show(el("notice"), false);
       show(el("schema-panel"), false);
     }
@@ -481,6 +565,8 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab[data-tab]"), function (b) {
       b.setAttribute("aria-selected", b.dataset.tab === state.tab ? "true" : "false");
     });
+    show(el("add-new"), state.tab === "Students" || state.tab === "Teachers");
+    el("add-new").textContent = state.tab === "Teachers" ? "+ Add teacher" : "+ Add student";
 
     if (state.tab === "Attendance") {
       show(el("table-wrap"), false);
@@ -665,6 +751,140 @@
       .catch(function () { notice("Could not reach the server.", "err"); });
   }
 
+  /* ---------- add student / teacher ---------- */
+
+  function openAdd() {
+    var isTeacher = state.tab === "Teachers";
+    var form = el(isTeacher ? "teach-form" : "stu-form");
+    form.reset();
+    if (isTeacher) el("te-joined").value = todayISO();
+    fillCourseChoices(el(isTeacher ? "te-courses" : "st-courses"));
+    show(form, true);
+    form.scrollIntoView({ block: "center", behavior: "smooth" });
+    el(isTeacher ? "te-name" : "st-name").focus();
+  }
+
+  function fillCourseChoices(box) {
+    box.textContent = "Loading…";
+    ask({ action: "sessions", idToken: state.token })
+      .then(function (res) {
+        if (!res.ok) return failWrite(res);
+        state.courses = res.courses || [];
+        state.teachers = res.teachers || [];
+        box.innerHTML = "";
+        state.courses.forEach(function (course) {
+          var label = document.createElement("label");
+          var input = document.createElement("input");
+          input.type = "checkbox";
+          input.value = course;
+          var span = document.createElement("span");
+          span.textContent = course;
+          label.appendChild(input);
+          label.appendChild(span);
+          box.appendChild(label);
+        });
+        if (!box.children.length) box.textContent = "No course in Config yet.";
+      })
+      .catch(function () { box.textContent = "Could not load the courses."; });
+  }
+
+  function checkedCourses(box) {
+    return Array.prototype.map.call(box.querySelectorAll("input:checked"), function (input) {
+      return input.value;
+    });
+  }
+
+  function addStudent(event) {
+    event.preventDefault();
+    var save = el("stu-save");
+    save.disabled = true;
+    ask({
+      action: "addStudent",
+      name: el("st-name").value,
+      phone: el("st-phone").value,
+      email: el("st-email").value,
+      dob: el("st-dob").value,
+      parentName: el("st-pname").value,
+      parentPhone: el("st-pphone").value,
+      parentRelation: el("st-prel").value,
+      courses: checkedCourses(el("st-courses")),
+      idToken: state.token
+    })
+      .then(function (res) {
+        save.disabled = false;
+        if (!res.ok) {
+          var messages = {
+            missing_name: "Enter the student's name.",
+            invalid_phone: "Enter a phone number (8 to 15 digits).",
+            invalid_email: "That email does not look right.",
+            invalid_dob: "That date of birth is not valid, or it is in the future.",
+            parent_required: "The student is under 18: add the parent's name and phone.",
+            unknown_course: "Pick the courses from the list.",
+            missing_course: "Tick at least one course."
+          };
+          if (res.error === "student_exists") {
+            return notice("Already in Students as " + (res.studentId || "a row without ID") +
+              " (" + (res.name || "") + "). Nothing was added.", "warn");
+          }
+          return notice(messages[res.error] || explain(res), "err");
+        }
+        show(el("stu-form"), false);
+        var text = "Student " + (res.studentId || "(no StudentID column)") + " added";
+        if (res.enrollments && res.enrollments.length) text += ", enrollments " + res.enrollments.join(", ");
+        text += ".";
+        if (res.warnings && res.warnings.length) text += " " + res.warnings.join(" ");
+        notice(text, res.warnings && res.warnings.length ? "warn" : "ok");
+        load();
+        dashboard();
+      })
+      .catch(function () {
+        save.disabled = false;
+        notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
+  function addTeacher(event) {
+    event.preventDefault();
+    var save = el("teach-save");
+    save.disabled = true;
+    ask({
+      action: "addTeacher",
+      name: el("te-name").value,
+      phone: el("te-phone").value,
+      email: el("te-email").value,
+      joined: el("te-joined").value,
+      notes: el("te-notes").value,
+      courses: checkedCourses(el("te-courses")),
+      idToken: state.token
+    })
+      .then(function (res) {
+        save.disabled = false;
+        if (!res.ok) {
+          var messages = {
+            missing_name: "Enter the teacher's name.",
+            invalid_phone: "Enter a phone number (8 to 15 digits).",
+            invalid_email: "That email does not look right.",
+            missing_contact: "Add a phone number or an email.",
+            unknown_course: "Pick the courses from the list.",
+            invalid_date: "That start date is not valid, or it is in the future."
+          };
+          if (res.error === "teacher_exists") {
+            return notice("A teacher with that name and phone or email is already in the sheet. Nothing was added.", "warn");
+          }
+          return notice(messages[res.error] || explain(res), "err");
+        }
+        show(el("teach-form"), false);
+        var text = "Teacher " + (res.teacherId || "(no TeacherID column)") + " added.";
+        if (res.warnings && res.warnings.length) text += " " + res.warnings.join(" ");
+        notice(text, res.warnings && res.warnings.length ? "warn" : "ok");
+        load();
+      })
+      .catch(function () {
+        save.disabled = false;
+        notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
   /* ---------- attendance ---------- */
 
   function attendanceSession() {
@@ -683,8 +903,10 @@
         if (!res.ok) return failWrite(res);
         state.sessions = res.sessions || [];
         state.courses = res.courses || [];
+        state.teachers = res.teachers || [];
         fillSessions();
         fillCourses();
+        fillTeachers();
         if (!el("att-date").value) el("att-date").value = todayISO();
 
         var has = state.sessions.length > 0;
@@ -727,6 +949,17 @@
       var option = document.createElement("option");
       option.value = course;
       option.textContent = course;
+      sel.appendChild(option);
+    });
+  }
+
+  function fillTeachers() {
+    var sel = el("s-teacher");
+    sel.innerHTML = '<option value="">—</option>';
+    state.teachers.forEach(function (name) {
+      var option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
       sel.appendChild(option);
     });
   }
@@ -935,6 +1168,9 @@
       return load();
     }
     if (e.target.closest("#check")) return checkSheet();
+    if (e.target.closest("#add-new")) return openAdd();
+    if (e.target.closest("#stu-cancel")) return show(el("stu-form"), false);
+    if (e.target.closest("#teach-cancel")) return show(el("teach-form"), false);
     if (e.target.closest("#pay-cancel")) {
       state.payStudent = null;
       show(el("pay-form"), false);
@@ -957,6 +1193,8 @@
   });
 
   el("pay-form").addEventListener("submit", savePayment);
+  el("stu-form").addEventListener("submit", addStudent);
+  el("teach-form").addEventListener("submit", addTeacher);
   el("sess-form").addEventListener("submit", addSession);
   el("att-session").addEventListener("change", loadRoster);
   el("att-date").addEventListener("change", loadRoster);

@@ -21,7 +21,7 @@ npx serve .        # or: python -m http.server 8080
 Already connected: a `git push` to `main` deploys to
 `https://yala-website.toufik-siife.workers.dev` through Cloudflare Workers (~1 minute).
 
-Setup notes: `docs/phase2-api.md` (public API), `docs/phase4-admin.md` (staff site), `docs/phase5-actions.md` (approving and payments), `docs/phase6-attendance.md` (overview, classes, attendance).
+Setup notes: `docs/phase2-api.md` (public API), `docs/phase4-admin.md` (staff site), `docs/phase5-actions.md` (approving and payments), `docs/phase6-attendance.md` (overview, classes, attendance), `docs/phase7-registration.md` (adding students and teachers).
 
 Custom domain later: Cloudflare Pages → *Custom domains* (free). A `.com` costs ~1,200–2,000 DZD/year; `.dz` needs local paperwork.
 
