@@ -51,16 +51,32 @@ Left menu → **APIs & Services** → **OAuth consent screen**
 
 ✅ You land on a page with tabs: *Overview / Branding / Audience / Clients / Data access*.
 
-### 1.4 Publish the app
+### 1.4 Publish the app — or skip it
 
 1. Open the **Audience** tab.
-2. Under *Publishing status* you will see **Testing** — click **Publish app** → **Confirm**.
 
-✅ Publishing status now says **In production**.
+**If the publishing status already says *In production*, go to 1.5. Nothing to do.**
 
-> Why this matters: in *Testing* mode Google only lets in accounts you list as test users,
-> and staff sign-ins quietly break after 7 days. Publishing needs no review, because we
-> only use name, email and profile — Google calls these "non-sensitive".
+**If it says *Testing* and the *Publish app* button is clickable:** click it → **Confirm**.
+
+**If the button is greyed out:** that is a known Google console bug (reported all through
+October 2026, no fix). Do **not** fight it. Skip publishing and add your Gmail as a test
+user instead:
+
+1. On the **Audience** tab, find **Test users** → **+ Add users**.
+2. Add `yaghmoracen.academy@gmail.com`. Add every staff Gmail here too, now or later.
+3. **Save**.
+
+What changes in practice:
+
+| | Published | Testing + test users |
+|---|---|---|
+| Staff on the test-user list | sign in normally | sign in; each sees *"Google hasn't verified this app"* once → **Advanced → Go to YALA Management (unsafe) → Continue** |
+| Staff *not* on the list | blocked by our `Staff` tab | blocked by Google before they reach us |
+| Limit | none | 100 test users — far more than this school needs |
+| Expires after 7 days | no | **no** — that 7-day rule only applies to long-lived refresh tokens, which this site never asks for |
+
+Everything else in this guide is identical.
 
 ### 1.5 Create the client
 
@@ -219,6 +235,9 @@ effective on the next page load. To remove access, set `Active` to `NO` (or dele
 | Sign-in box empty, browser console says *The given client ID is not found* | Client ID wrong, or not active yet | Re-copy it; wait 10 minutes |
 | "Google could not start sign-in. Check that https://… is listed…" | The origin is missing or has a typo | Part 1.5.5 — no slash, no `/admin` |
 | "This account (…) is not on the staff list" | Signed in with the wrong Google account, or `Active = NO` | Use the right account / fix the row |
+| *"Google hasn't verified this app"* before sign-in | Normal while the app is in *Testing* | **Advanced → Go to YALA Management (unsafe) → Continue** |
+| *"Access blocked: authorisation error"* from Google | The account is not on the **Test users** list (Testing mode) | Add that Gmail in Audience → Test users |
+| *Publish app* greyed out | Google console bug | Skip it — use test users (step 1.4) |
 | "Your session expired" | The 1-hour token expired | Sign in again (normal) |
 | "The tab "Registrations" does not exist" | A tab was renamed in the Sheet | Rename it back |
 | "Could not reach the server" | No connection, or the deployment was deleted | Check connection; redeploy in Apps Script |
