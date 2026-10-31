@@ -162,7 +162,7 @@
     </form>
 
     <form id="stu-form" class="pay-form" hidden>
-      <h2>Add a student</h2>
+      <h2>Register a student</h2>
       <div class="grid">
         <div>
           <label for="st-name">Full name</label>
@@ -198,7 +198,7 @@
         <div id="st-courses"></div>
       </fieldset>
       <div class="actions">
-        <button class="btn btn-primary" type="submit" id="stu-save">Add student</button>
+        <button class="btn btn-primary" type="submit" id="stu-save">Save registration</button>
         <button class="btn btn-outline" type="button" id="stu-cancel">Cancel</button>
       </div>
     </form>
@@ -565,7 +565,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab[data-tab]"), function (b) {
       b.setAttribute("aria-selected", b.dataset.tab === state.tab ? "true" : "false");
     });
-    show(el("add-new"), state.tab === "Students" || state.tab === "Teachers");
+    show(el("add-new"), state.tab === "Registrations" || state.tab === "Teachers");
     el("add-new").textContent = state.tab === "Teachers" ? "+ Add teacher" : "+ Add student";
 
     if (state.tab === "Attendance") {
@@ -799,7 +799,7 @@
     var save = el("stu-save");
     save.disabled = true;
     ask({
-      action: "addStudent",
+      action: "addRegistration",
       name: el("st-name").value,
       phone: el("st-phone").value,
       email: el("st-email").value,
@@ -823,15 +823,18 @@
             missing_course: "Tick at least one course."
           };
           if (res.error === "student_exists") {
-            return notice("Already in Students as " + (res.studentId || "a row without ID") +
+            return notice("Already a student: " + (res.studentId || "row without ID") +
               " (" + (res.name || "") + "). Nothing was added.", "warn");
+          }
+          if (res.error === "already_registered") {
+            return notice("Already in Registrations as " + (res.registrationId || "a row without ID") +
+              " and not approved yet. Nothing was added.", "warn");
           }
           return notice(messages[res.error] || explain(res), "err");
         }
         show(el("stu-form"), false);
-        var text = "Student " + (res.studentId || "(no StudentID column)") + " added";
-        if (res.enrollments && res.enrollments.length) text += ", enrollments " + res.enrollments.join(", ");
-        text += ".";
+        var text = "Registration " + (res.registrationId || "(no RegistrationID column)") +
+          " saved as Pending. Approve it in the list below.";
         if (res.warnings && res.warnings.length) text += " " + res.warnings.join(" ");
         notice(text, res.warnings && res.warnings.length ? "warn" : "ok");
         load();

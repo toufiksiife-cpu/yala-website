@@ -57,7 +57,7 @@ function doPost(e) {
     if (action === 'roster') return json_(roster_(body));
     if (action === 'attend') return json_(attend_(body, email));
     if (action === 'addSession') return json_(addSession_(body));
-    if (action === 'addStudent') return json_(addStudent_(body));
+    if (action === 'addRegistration') return json_(addRegistration_(body));
     if (action === 'addTeacher') return json_(addTeacher_(body));
     return json_({ ok: false, error: 'unknown_action' });
   } catch (err) {
@@ -227,6 +227,7 @@ var FIELDS = {
     parentPhone: ['parentphone'],
     parentRelation: ['parentrelation'],
     notes: ['notes', 'note'],
+    submitted: ['submittedat', 'submitted', 'createdat'],
     by: ['approvedby'],
     at: ['approvedat']
   },
@@ -429,9 +430,9 @@ function findStudent_(sheet, head, name, phone, dob) {
 
 var TEACHERS_HEADERS = ['TeacherID', 'FullName', 'Phone', 'Email', 'Courses', 'Status', 'JoinedOn', 'Notes'];
 
-// Staff typing the row is the approval, so this writes the student as Active
-// instead of going through Registrations.
-function addStudent_(body) {
+// Staff enter the person here and the owner approves like any other
+// registration, so nothing becomes an Active student without approval.
+function addRegistration_(body) {
   var name = clean_(body.name, 80);
   if (!name) return { ok: false, error: 'missing_name' };
 
@@ -459,24 +460,41 @@ function addStudent_(body) {
   if (chosen === null) return { ok: false, error: 'unknown_course' };
   if (!chosen.length) return { ok: false, error: 'missing_course' };
 
-  var students = ss.getSheetByName('Students');
-  if (!students) return { ok: false, error: 'missing_tab', tab: 'Students' };
-  var head = headerRow_(students);
-  if (colOf_(head, 'name', 'Students') === -1) return missing_('Students', 'FullName', head);
+  var reg = ss.getSheetByName('Registrations');
+  if (!reg) return { ok: false, error: 'missing_tab', tab: 'Registrations' };
+  var head = headerRow_(reg);
+  if (colOf_(head, 'name', 'Registrations') === -1) return missing_('Registrations', 'FullName', head);
+  if (colOf_(head, 'status', 'Registrations') === -1) return missing_('Registrations', 'Status', head);
 
-  var existing = findStudent_(students, head, name, phone, dob);
-  if (existing) return { ok: false, error: 'student_exists', studentId: existing.id, name: existing.name };
+  var students = ss.getSheetByName('Students');
+  if (students) {
+    var existing = findStudent_(students, headerRow_(students), name, phone, dob);
+    if (existing) return { ok: false, error: 'student_exists', studentId: existing.id, name: existing.name };
+  }
 
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
   try {
-    var again = findStudent_(students, head, name, phone, dob);
-    if (again) return { ok: false, error: 'student_exists', studentId: again.id, name: again.name };
+    var iName = colOf_(head, 'name', 'Registrations');
+    var iPhone = colOf_(head, 'phone', 'Registrations');
+    var iStatus = colOf_(head, 'status', 'Registrations');
+    var iId = colOf_(head, 'id', 'Registrations');
+    var rows = reg.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][iName] || '').trim().toLowerCase() !== name.toLowerCase()) continue;
+      if (iPhone === -1 || phone === '' || digits_(rows[i][iPhone]) !== phone) continue;
+      if (/^(approved|rejected)$/i.test(String(rows[i][iStatus] || '').trim())) continue;
+      return {
+        ok: false,
+        error: 'already_registered',
+        registrationId: iId === -1 ? '' : String(rows[i][iId]).trim()
+      };
+    }
 
-    var warnings = [];
-    var studentId = put_(students, 'Students', [
+    var id = put_(reg, 'Registrations', [
       ['name', name],
       ['phone', phone],
+      ['whatsapp', phone],
       ['email', email],
       ['dob', dob || ''],
       ['age', age],
@@ -485,32 +503,15 @@ function addStudent_(body) {
       ['parentRelation', clean_(body.parentRelation, 30)],
       ['under18', age === '' ? '' : (age < 18 ? 'YES' : 'NO')],
       ['courses', chosen.join(', ')],
-      ['status', 'Active'],
-      ['created', new Date()]
-    ], 'STU');
-    if (!studentId) warnings.push('Students has no ID column, so the student has no StudentID.');
-
-    var enrollments = ss.getSheetByName('Enrollments');
-    var ids = [];
-    if (!enrollments) {
-      warnings.push('No Enrollments tab: the courses were not recorded there.');
-    } else {
-      var eHead = headerRow_(enrollments);
-      if (colOf_(eHead, 'studentId', 'Enrollments') === -1 || colOf_(eHead, 'course', 'Enrollments') === -1) {
-        warnings.push('Enrollments has no StudentID/Course column: the courses were not recorded there.');
-      } else {
-        for (var c = 0; c < chosen.length; c++) {
-          ids.push(put_(enrollments, 'Enrollments', [
-            ['studentId', studentId],
-            ['course', chosen[c]],
-            ['fee', feeOf_(chosen[c])],
-            ['start', new Date()],
-            ['status', 'Active']
-          ], 'ENR') || '');
-        }
-      }
-    }
-    return { ok: true, studentId: studentId, enrollments: ids, warnings: warnings };
+      ['notes', clean_(body.notes, 300)],
+      ['submitted', new Date()],
+      ['status', 'Pending']
+    ], 'REG');
+    return {
+      ok: true,
+      registrationId: id,
+      warnings: id ? [] : ['Registrations has no ID column, so the registration has no RegistrationID.']
+    };
   } finally {
     lock.releaseLock();
   }

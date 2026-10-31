@@ -24,6 +24,8 @@ First open adds:
 
 Do not rename those headers. If you do, the page refuses and tells you which column is missing.
 
+If your sheet already has a `Sessions` or `Attendance` tab with other columns (for example `Course | Day | Time`), rename that tab to `SessionsOld` / `AttendanceOld` instead of deleting it. The script then creates the correct tab next time you open Attendance, and your old data stays where it is.
+
 ## Use it
 
 1. **Attendance** → **+ Add a weekly class** → pick the course (comes from `Config`), day, start, end, optional teacher/room → **Add class**.
