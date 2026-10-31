@@ -35,6 +35,26 @@
   .empty { padding: 40px 20px; text-align: center; color: var(--muted); }
   .note { background: var(--bg-soft); border-radius: 8px; padding: 12px 14px; font-size: .88rem; color: var(--muted); }
   .gsi { margin-block-start: 8px; }
+
+  /* Phase 5: write actions */
+  .mini { border: 1px solid var(--navy); background: #fff; color: var(--navy); border-radius: 6px; padding: 4px 10px; font: inherit; font-size: .82rem; cursor: pointer; white-space: nowrap; }
+  .mini:hover { background: var(--navy); color: #fff; }
+  .mini[disabled] { opacity: .5; cursor: progress; }
+  #notice { border-radius: 8px; padding: 12px 14px; margin-block-end: 14px; font-size: .9rem; }
+  #notice.ok { background: #EAF6E1; color: #2F4A10; }
+  #notice.err { background: #FEF3F2; color: #7A271A; }
+  #notice.warn { background: #FFF7E8; color: #7A4A00; }
+  #schema-panel { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-block-end: 14px; font-size: .85rem; }
+  #schema-panel h2 { font-size: .95rem; margin: 0 0 8px; }
+  #schema-panel table { font-size: .82rem; }
+  #schema-panel td, #schema-panel th { padding: 4px 8px; }
+  .pay-form { border: 1px solid var(--navy); border-radius: var(--radius); padding: 16px; margin-block-end: 14px; background: #F7FAFF; }
+  .pay-form h2 { font-size: 1rem; margin: 0 0 4px; }
+  .pay-form .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .pay-form label { display: block; font-size: .82rem; font-weight: 600; margin-block: 10px 4px; }
+  .pay-form input, .pay-form select, .pay-form textarea { width: 100%; padding: 9px 10px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; background: #fff; }
+  .pay-form .actions { display: flex; gap: 8px; margin-block-start: 14px; }
+  @media (max-width: 560px) { .pay-form .grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -68,12 +88,50 @@
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="Registrations" aria-selected="true">Registrations</button>
       <button class="tab" role="tab" data-tab="Students" aria-selected="false">Students</button>
+      <button class="tab" role="tab" data-tab="Payments" aria-selected="false">Payments</button>
       <button class="tab" role="tab" id="signout" style="margin-inline-start:auto">Sign out</button>
     </div>
 
+    <div id="notice" hidden></div>
+
+    <form id="pay-form" class="pay-form" hidden>
+      <h2>Record a payment</h2>
+      <div class="note" id="pay-who" style="background:#fff"></div>
+      <div class="grid">
+        <div>
+          <label for="pay-amount">Amount (DZD)</label>
+          <input id="pay-amount" type="number" inputmode="numeric" min="1" step="1" required>
+        </div>
+        <div>
+          <label for="pay-date">Date</label>
+          <input id="pay-date" type="date" required>
+        </div>
+        <div>
+          <label for="pay-method">Method</label>
+          <select id="pay-method">
+            <option value="Cash">Cash</option>
+            <option value="Bank">Bank transfer</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="pay-note">Note (optional)</label>
+          <input id="pay-note" type="text" maxlength="200" placeholder="October, 2nd instalment…">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" id="pay-save">Save payment</button>
+        <button class="btn btn-outline" type="button" id="pay-cancel">Cancel</button>
+      </div>
+    </form>
+
+    <div id="schema-panel" hidden></div>
+
     <div class="toolbar">
       <input id="search" type="search" placeholder="Search name, phone, anything…" aria-label="Search">
-      <button class="btn btn-ghost" id="refresh" type="button">Refresh</button>
+      <button class="btn btn-outline" id="refresh" type="button">Refresh</button>
+      <button class="btn btn-outline" id="check" type="button">Check spreadsheet</button>
       <span class="status" id="status" aria-live="polite"></span>
     </div>
 
@@ -94,7 +152,7 @@
 
   var API = window.YALA_ADMIN_API;
   var TOKEN_KEY = "yala-admin-token";
-  var state = { token: "", email: "", tab: "Registrations", data: null, query: "" };
+  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null };
 
   var el = function (id) { return document.getElementById(id); };
   var show = function (node, on) { node.hidden = !on; };
@@ -136,6 +194,53 @@
   }
 
   /* ---------- table ---------- */
+
+  function rowValue(row, re) {
+    for (var k in row) { if (re.test(k)) return row[k]; }
+    return "";
+  }
+
+  function notice(text, kind) {
+    var n = el("notice");
+    n.textContent = text;
+    n.className = kind || "ok";
+    show(n, true);
+  }
+
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+
+  function actionCell(row) {
+    var td = document.createElement("td");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mini";
+    var id, name;
+
+    if (state.tab === "Registrations") {
+      id = rowValue(row, /^registrationid$/i);
+      if (!id) return td;
+      if (/^(approved|rejected)$/i.test(String(rowValue(row, /^status$/i)).trim())) {
+        td.textContent = "—";
+        return td;
+      }
+      btn.textContent = "Approve";
+      btn.dataset.action = "approve";
+      name = rowValue(row, /^fullname$/i);
+    } else {
+      id = rowValue(row, /^studentid$/i);
+      if (!id) return td;
+      btn.textContent = "Payment";
+      btn.dataset.action = "pay";
+      name = rowValue(row, /^fullname$/i);
+    }
+    btn.dataset.id = id;
+    btn.dataset.name = name || "";
+    td.appendChild(btn);
+    return td;
+  }
 
   function cell(value, header) {
     var td = document.createElement("td");
@@ -186,8 +291,16 @@
     var table = document.createElement("table");
     var thead = document.createElement("thead");
     var htr = document.createElement("tr");
+    var hasActions = state.tab === "Registrations" || state.tab === "Students";
+    if (hasActions) {
+      var blank = document.createElement("th");
+      blank.scope = "col";
+      blank.textContent = "Action";
+      htr.appendChild(blank);
+    }
     headers.forEach(function (h) {
       var th = document.createElement("th");
+      th.scope = "col";
       th.textContent = h;
       htr.appendChild(th);
     });
@@ -197,6 +310,7 @@
     var tbody = document.createElement("tbody");
     rows.forEach(function (row) {
       var tr = document.createElement("tr");
+      if (hasActions) tr.appendChild(actionCell(row));
       headers.forEach(function (h) { tr.appendChild(cell(row[h], h)); });
       tbody.appendChild(tr);
     });
@@ -212,7 +326,13 @@
   /* ---------- data ---------- */
 
   function load(tab) {
-    if (tab) state.tab = tab;
+    if (tab) {
+      state.tab = tab;
+      state.payStudent = null;
+      show(el("pay-form"), false);
+      show(el("notice"), false);
+      show(el("schema-panel"), false);
+    }
     clearFail();
     el("status").textContent = "Loading…";
     Array.prototype.forEach.call(document.querySelectorAll(".tab[data-tab]"), function (b) {
@@ -251,6 +371,144 @@
     show(el("signin"), false);
     show(el("app"), true);
     load("Registrations");
+  }
+
+  /* ---------- write actions ---------- */
+
+  function explain(res) {
+    var common = {
+      busy: "Someone else is saving right now. Try again in a few seconds.",
+      forbidden: "This account is not on the staff list any more.",
+      unauthorized: "Your session expired. Sign in again.",
+      server_error: "The script hit an error. Apps Script → Executions shows the details.",
+      not_found: "That row is no longer in the sheet. Press Refresh."
+    };
+    if (res.error === "missing_column") {
+      return "The " + res.tab + " sheet has no column for " + res.column + ". Columns found: " +
+        (res.headers || []).join(", ") + ". Use Check spreadsheet.";
+    }
+    if (res.error === "missing_tab") return 'The tab "' + res.tab + '" is missing from the spreadsheet.';
+    return common[res.error] || "Could not save. (" + res.error + ")";
+  }
+
+  function failWrite(res) {
+    if (res.error === "unauthorized" || res.error === "forbidden") {
+      signOut(explain(res));
+      return;
+    }
+    notice(explain(res), "err");
+  }
+
+  function approve(btn) {
+    var id = btn.dataset.id;
+    var name = btn.dataset.name || "this applicant";
+    if (!window.confirm("Approve " + name + " (" + id + ")?\n\nCreates the student and their course enrollments. This cannot be undone from here.")) return;
+
+    btn.disabled = true;
+    ask({ action: "approve", regId: id, idToken: state.token })
+      .then(function (res) {
+        btn.disabled = false;
+        if (!res.ok) {
+          if (res.error === "student_exists") {
+            notice("Already in Students as " + (res.studentId || "a row without ID") + " (" + (res.name || name) + "). Nothing was added.", "warn");
+            return;
+          }
+          if (res.error === "already_approved") {
+            notice("This registration was already approved.", "warn");
+            load();
+            return;
+          }
+          return failWrite(res);
+        }
+        var text = "Approved. Student " + (res.studentId || "(no StudentID column)");
+        if (res.enrollments && res.enrollments.length) text += ", enrollments " + res.enrollments.join(", ");
+        text += ".";
+        if (res.warnings && res.warnings.length) text += " " + res.warnings.join(" ");
+        notice(text, res.warnings && res.warnings.length ? "warn" : "ok");
+        load();
+      })
+      .catch(function () {
+        btn.disabled = false;
+        notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
+  function openPay(btn) {
+    state.payStudent = { id: btn.dataset.id, name: btn.dataset.name || "" };
+    el("pay-who").textContent = (state.payStudent.name || "Student") + " — " + state.payStudent.id;
+    el("pay-amount").value = "";
+    el("pay-date").value = todayISO();
+    el("pay-note").value = "";
+    show(el("pay-form"), true);
+    el("pay-form").scrollIntoView({ block: "center", behavior: "smooth" });
+    el("pay-amount").focus();
+  }
+
+  function savePayment(event) {
+    event.preventDefault();
+    if (!state.payStudent) return;
+
+    var amount = Number(el("pay-amount").value);
+    if (!(amount > 0)) return notice("Enter an amount above zero.", "err");
+
+    var save = el("pay-save");
+    save.disabled = true;
+    ask({
+      action: "pay",
+      studentId: state.payStudent.id,
+      amount: amount,
+      date: el("pay-date").value,
+      method: el("pay-method").value,
+      note: el("pay-note").value,
+      idToken: state.token
+    })
+      .then(function (res) {
+        save.disabled = false;
+        if (!res.ok) {
+          if (res.error === "invalid_amount") return notice("Enter an amount above zero.", "err");
+          if (res.error === "duplicate_payment") return notice("This exact payment was just recorded. Nothing added twice.", "warn");
+          return failWrite(res);
+        }
+        show(el("pay-form"), false);
+        state.payStudent = null;
+        notice("Payment " + (res.paymentId || "") + " recorded: " + res.amount + " DZD for " + (res.studentName || "student") + " on " + res.date + ".", "ok");
+        if (state.tab === "Payments") load();
+      })
+      .catch(function () {
+        save.disabled = false;
+        notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
+  function checkSheet() {
+    ask({ action: "schema", idToken: state.token })
+      .then(function (res) {
+        if (!res.ok) return failWrite(res);
+        var panel = el("schema-panel");
+        panel.innerHTML = "";
+
+        var h = document.createElement("h2");
+        h.textContent = "Spreadsheet check";
+        panel.appendChild(h);
+
+        var note = document.createElement("div");
+        note.className = "note";
+        note.style.background = res.problems.length ? "#FEF3F2" : "#EAF6E1";
+        note.style.color = res.problems.length ? "#7A271A" : "#2F4A10";
+        note.textContent = res.problems.length ? res.problems.join(" · ") : "Everything the site needs is present.";
+        panel.appendChild(note);
+
+        Object.keys(res.tabs).forEach(function (name) {
+          var info = res.tabs[name];
+          var p = document.createElement("p");
+          p.style.margin = "8px 0 0";
+          p.textContent = name + (info.exists ? ": " : ": MISSING TAB — ") + (info.headers || []).join(" | ");
+          panel.appendChild(p);
+        });
+
+        show(panel, true);
+      })
+      .catch(function () { notice("Could not reach the server.", "err"); });
   }
 
   /* ---------- sign-in ---------- */
@@ -317,11 +575,21 @@
     var tab = e.target.closest(".tab[data-tab]");
     if (tab) return load(tab.dataset.tab);
     if (e.target.closest("#signout")) return signOut("");
-    if (e.target.closest("#refresh")) {
-      if (state.data) return render();
-      return load();
+    if (e.target.closest("#refresh")) return load();
+    if (e.target.closest("#check")) return checkSheet();
+    if (e.target.closest("#pay-cancel")) {
+      state.payStudent = null;
+      show(el("pay-form"), false);
+      return;
+    }
+    var action = e.target.closest("[data-action]");
+    if (action) {
+      if (action.dataset.action === "approve") return approve(action);
+      if (action.dataset.action === "pay") return openPay(action);
     }
   });
+
+  el("pay-form").addEventListener("submit", savePayment);
 
   el("search").addEventListener("input", function () {
     state.query = this.value.trim();
