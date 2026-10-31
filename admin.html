@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>YALA — Management</title>
+<meta name="description" content="Staff management for YALA — sign in with a staff Google account.">
+<meta name="theme-color" content="#1E456F">
+<link rel="icon" href="assets/img/favicon.png">
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  .admin-head { border-block-end: 1px solid var(--line); background: #fff; }
+  .admin-head .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; }
+  .admin-head img { width: 120px; }
+  .admin-head .who { font-size: .85rem; color: var(--muted); text-align: end; }
+  .admin-head .who strong { color: var(--ink); display: block; font-size: .9rem; }
+  .card { border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; background: #fff; }
+  .card h1 { font-size: 1.35rem; margin-block: 0 6px; }
+  .card p { color: var(--muted); margin-block: 0 16px; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 20px 12px; }
+  .tab { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 8px 16px; font: inherit; cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-block-end: 12px; }
+  .toolbar input { flex: 1 1 200px; min-width: 0; padding: 10px 12px; font: inherit; border: 1px solid #C7D0DC; border-radius: 8px; }
+  .toolbar .status { color: var(--muted); font-size: .85rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { padding: 9px 12px; text-align: start; border-block-end: 1px solid var(--line); white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+  th { background: var(--bg-soft); position: sticky; top: 0; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  tbody tr:last-child td { border-block-end: 0; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; background: var(--bg-soft); color: var(--muted); }
+  .chip.pending { background: #FFF1E3; color: #8A4B00; }
+  .chip.active { background: #EAF6E1; color: #3F5F14; }
+  .empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .note { background: var(--bg-soft); border-radius: 8px; padding: 12px 14px; font-size: .88rem; color: var(--muted); }
+  .gsi { margin-block-start: 8px; }
+</style>
+</head>
+<body>
+
+<header class="admin-head">
+  <div class="wrap">
+    <a href="index.html"><img src="assets/img/logo.webp" width="600" height="183" alt="YALA"></a>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<main class="wrap" style="max-width:1180px;padding-block:28px 60px">
+
+  <div id="setup" class="card" hidden>
+    <h1>Management is not connected yet</h1>
+    <p>Finish the one-time setup in <code>docs/phase4-admin.md</code>, then reload this page.</p>
+    <div class="note" id="setup-detail"></div>
+  </div>
+
+  <div id="signin" class="card" hidden>
+    <h1>Staff sign-in</h1>
+    <p>Use the Google account you gave the academy. Only accounts on the staff list get access.</p>
+    <div class="gsi" id="gsi"></div>
+    <div class="form-error" id="signin-error" role="alert" hidden></div>
+    <div class="note" style="margin-block-start:16px">
+      Not on the list? Ask the owner to add your email to the <strong>Staff</strong> tab of the academy spreadsheet.
+    </div>
+  </div>
+
+  <div id="app" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="Registrations" aria-selected="true">Registrations</button>
+      <button class="tab" role="tab" data-tab="Students" aria-selected="false">Students</button>
+      <button class="tab" role="tab" id="signout" style="margin-inline-start:auto">Sign out</button>
+    </div>
+
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search name, phone, anything…" aria-label="Search">
+      <button class="btn btn-ghost" id="refresh" type="button">Refresh</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+
+    <div class="table-wrap" id="table-wrap">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+
+  <div class="form-error" id="error" role="alert" hidden></div>
+
+</main>
+
+<script src="assets/config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+(function () {
+  "use strict";
+
+  var API = window.YALA_ADMIN_API;
+  var TOKEN_KEY = "yala-admin-token";
+  var state = { token: "", email: "", tab: "Registrations", data: null, query: "" };
+
+  var el = function (id) { return document.getElementById(id); };
+  var show = function (node, on) { node.hidden = !on; };
+
+  function ask(body) {
+    return fetch(API, {
+      method: "POST",
+      // text/plain keeps it a "simple" request: no CORS preflight, which Apps Script cannot answer.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); });
+  }
+
+  function fail(msg) {
+    el("error").textContent = msg;
+    show(el("error"), true);
+  }
+
+  function clearFail() { show(el("error"), false); }
+
+  function signOut(message) {
+    try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {}
+    state.token = "";
+    state.data = null;
+    if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+    show(el("app"), false);
+    show(el("signin"), true);
+    if (message) {
+      el("signin-error").textContent = message;
+      show(el("signin-error"), true);
+    }
+  }
+
+  function emailFromToken(jwt) {
+    try {
+      var part = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(atob(part)).email || "";
+    } catch (e) { return ""; }
+  }
+
+  /* ---------- table ---------- */
+
+  function cell(value, header) {
+    var td = document.createElement("td");
+    var text = value === null || value === undefined ? "" : String(value);
+    if (header === "Status" && text) {
+      var chip = document.createElement("span");
+      chip.className = "chip " + text.toLowerCase();
+      chip.textContent = text;
+      td.appendChild(chip);
+      return td;
+    }
+    td.textContent = text;
+    td.title = text;
+    return td;
+  }
+
+  function render() {
+    var wrap = el("table-wrap");
+    var data = state.data;
+    if (!data || !data.rows || !data.rows.length) {
+      wrap.innerHTML = '<div class="empty">Nothing here yet.</div>';
+      el("status").textContent = data ? "0 rows" : "";
+      return;
+    }
+
+    var q = state.query.toLowerCase();
+    var rows = data.rows;
+    if (state.tab === "Registrations") rows = rows.slice().reverse(); // newest first
+    if (q) {
+      rows = rows.filter(function (row) {
+        for (var k in row) {
+          if (String(row[k]).toLowerCase().indexOf(q) !== -1) return true;
+        }
+        return false;
+      });
+    }
+    // Columns that are empty for every row are noise: drop them.
+    var headers = data.headers.filter(function (h) {
+      return data.rows.some(function (r) { return String(r[h] === undefined ? "" : r[h]) !== ""; });
+    });
+
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="empty">No row matches.</div>';
+      el("status").textContent = "0 of " + data.rows.length + " rows";
+      return;
+    }
+
+    var table = document.createElement("table");
+    var thead = document.createElement("thead");
+    var htr = document.createElement("tr");
+    headers.forEach(function (h) {
+      var th = document.createElement("th");
+      th.textContent = h;
+      htr.appendChild(th);
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement("tbody");
+    rows.forEach(function (row) {
+      var tr = document.createElement("tr");
+      headers.forEach(function (h) { tr.appendChild(cell(row[h], h)); });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    wrap.innerHTML = "";
+    wrap.appendChild(table);
+
+    el("status").textContent = (q ? rows.length + " of " + data.rows.length : data.rows.length) +
+      " rows" + (data.truncated ? " (first 500 shown)" : "");
+  }
+
+  /* ---------- data ---------- */
+
+  function load(tab) {
+    if (tab) state.tab = tab;
+    clearFail();
+    el("status").textContent = "Loading…";
+    Array.prototype.forEach.call(document.querySelectorAll(".tab[data-tab]"), function (b) {
+      b.setAttribute("aria-selected", b.dataset.tab === state.tab ? "true" : "false");
+    });
+
+    ask({ action: "list", tab: state.tab, idToken: state.token })
+      .then(function (res) {
+        if (res.ok) {
+          state.data = res;
+          render();
+          return;
+        }
+        if (res.error === "unauthorized") return signOut("Your session expired. Sign in again.");
+        if (res.error === "forbidden") return signOut("This account (" + (res.email || "unknown") + ") is not on the staff list.");
+        if (res.error === "missing_tab") {
+          state.data = null;
+          render();
+          return fail('The tab "' + state.tab + '" does not exist in the spreadsheet.');
+        }
+        fail("Could not load the list. Try Refresh.");
+      })
+      .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
+  }
+
+  function start(token) {
+    state.token = token;
+    state.email = emailFromToken(token) || "signed in";
+    el("who").innerHTML = "";
+    var strong = document.createElement("strong");
+    strong.textContent = state.email;
+    var span = document.createElement("span");
+    span.textContent = "Staff access";
+    el("who").appendChild(strong);
+    el("who").appendChild(span);
+    show(el("signin"), false);
+    show(el("app"), true);
+    load("Registrations");
+  }
+
+  /* ---------- sign-in ---------- */
+
+  function initGoogle(clientId) {
+    show(el("signin"), true);
+    el("gsi").textContent = "Loading Google sign-in…";
+    var tries = 0;
+    (function wait() {
+      if (window.google && google.accounts && google.accounts.id) {
+        el("gsi").textContent = "";
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: function (response) {
+            try { sessionStorage.setItem(TOKEN_KEY, response.credential); } catch (e) {}
+            show(el("signin-error"), false);
+            start(response.credential);
+          }
+        });
+        google.accounts.id.renderButton(el("gsi"), {
+          theme: "outline", size: "large", text: "signin_with", locale: "en"
+        });
+        return;
+      }
+      if (++tries > 60) { el("gsi").textContent = "Google sign-in could not load. Check your connection and reload."; return; }
+      window.requestAnimationFrame(wait);
+    })();
+  }
+
+  if (!API) {
+    show(el("setup"), true);
+    el("setup-detail").textContent = "Missing the admin API URL in assets/config.js.";
+    return;
+  }
+
+  fetch(API + "?action=config")
+    .then(function (r) { return r.json(); })
+    .then(function (cfg) {
+      if (!cfg || !cfg.clientId) {
+        show(el("setup"), true);
+        el("setup-detail").textContent = "The YALA ADMIN script has no OAuth client ID yet (CLIENT_ID in admin.gs).";
+        return;
+      }
+      var saved = "";
+      try { saved = sessionStorage.getItem(TOKEN_KEY) || ""; } catch (e) {}
+      if (saved) start(saved);
+      else initGoogle(cfg.clientId);
+    })
+    .catch(function () {
+      show(el("setup"), true);
+      el("setup-detail").textContent = "Could not reach the admin API. Check window.YALA_ADMIN_API in assets/config.js.";
+    });
+
+  /* ---------- events ---------- */
+
+  document.addEventListener("click", function (e) {
+    var tab = e.target.closest(".tab[data-tab]");
+    if (tab) return load(tab.dataset.tab);
+    if (e.target.closest("#signout")) return signOut("");
+    if (e.target.closest("#refresh")) {
+      if (state.data) return render();
+      return load();
+    }
+  });
+
+  el("search").addEventListener("input", function () {
+    state.query = this.value.trim();
+    render();
+  });
+})();
+</script>
+</body>
+</html>
