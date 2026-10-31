@@ -273,6 +273,13 @@
         google.accounts.id.renderButton(el("gsi"), {
           theme: "outline", size: "large", text: "signin_with", locale: "en"
         });
+        // A wrong client ID or an un-authorised origin leaves this box empty.
+        setTimeout(function () {
+          if (!el("gsi").children.length) {
+            el("gsi").textContent = "Google could not start sign-in. Check that " + location.origin +
+              " is listed under \"Authorised JavaScript origins\" for this client ID, then reload.";
+          }
+        }, 4000);
         return;
       }
       if (++tries > 60) { el("gsi").textContent = "Google sign-in could not load. Check your connection and reload."; return; }
