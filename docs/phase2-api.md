@@ -1,9 +1,5 @@
 # Phase 2 — public courses API
 
-The public site has no registration form any more: staff add students from `/admin`.
-This project is now read-only (`GET ?action=courses`); a `POST` answers
-`{"ok":false,"error":"registration_closed"}`.
-
 Why a separate project: your `Code.gs` contains `findDuplicates_()` and `login()`.
 Putting `?action=` there and setting that deployment to *Anyone* would let strangers
 call those functions and read student names and phone numbers. A separate project

@@ -2,7 +2,7 @@
 
 Website for a private language school in Tlemcen, Algeria.
 
-- **Public site**: Arabic (default, RTL) + English. Static HTML/CSS/JS. Courses and prices only; no registration form.
+- **Public site**: Arabic (default, RTL) + English. Static HTML/CSS/JS.
 - **Management**: English only, at `/admin`, Google Sign-In.
 - **Data**: the school's existing Google Sheet, through its Apps Script JSON API.
 
