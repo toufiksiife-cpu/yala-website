@@ -154,7 +154,7 @@ var CLIENT_ID = '1234567890-abcdefghijklmnop.apps.googleusercontent.com';
 |---|---|
 | Description | `staff v1` |
 | Execute as | **Me (`yaghmoracen.academy@gmail.com`)** |
-| Who has access | **Anyone with a Google account** |
+| Who has access | **Anyone** |
 
 4. **Deploy**.
 5. A Google authorisation window opens: **Authorise access** → choose
@@ -166,8 +166,11 @@ var CLIENT_ID = '1234567890-abcdefghijklmnop.apps.googleusercontent.com';
 
 **Copy that URL.**
 
-> Never choose **Anyone** for this one. *Anyone with a Google account* is what we want:
-> anybody can reach the script, but the script only answers staff.
+> It has to be **Anyone**, and that is not a hole. The admin page calls this URL from your
+> browser with a Google ID token; "Anyone with a Google account" would make Google demand a
+> sign-in *before* the script runs, and a background request cannot do that. So the script
+> answers anonymously and refuses everything without a valid staff token — proven in part 2.4.
+> No token, wrong app, expired token, or an email not in `Staff` → no rows.
 
 ### 2.4 Prove it works
 
@@ -241,7 +244,7 @@ effective on the next page load. To remove access, set `Active` to `NO` (or dele
 | "Your session expired" | The 1-hour token expired | Sign in again (normal) |
 | "The tab "Registrations" does not exist" | A tab was renamed in the Sheet | Rename it back |
 | "Could not reach the server" | No connection, or the deployment was deleted | Check connection; redeploy in Apps Script |
-| Freeze / no rows but no error | Deployment set to *Anyone with Google account* but not authorised | Re-deploy and finish the Allow dialog |
+| Google sign-in page or "you are not authorised" instead of JSON at `?action=config` | Deployment access is *Anyone with a Google account* | Set it to **Anyone** (part 2.3) |
 
 ## Who can see what
 
