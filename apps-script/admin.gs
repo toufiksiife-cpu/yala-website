@@ -66,7 +66,14 @@ function doPost(e) {
     if (action === 'setStaff') return json_(setStaff_(body, email));
     return json_({ ok: false, error: 'unknown_action' });
   } catch (err) {
-    return json_({ ok: false, error: 'server_error' });
+    // Swallowing the error made a broken deployment show only "Could not load
+    // the list". Keep the cause in the response and in Executions.
+    try { console.error(err); } catch (logErr) {}
+    return json_({
+      ok: false,
+      error: 'server_error',
+      detail: String((err && err.message) || err).slice(0, 200)
+    });
   }
 }
 

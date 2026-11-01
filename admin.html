@@ -753,7 +753,8 @@
           render();
           return fail('The tab "' + state.tab + '" does not exist in the spreadsheet.');
         }
-        fail("Could not load the list. Try Refresh.");
+        fail("Could not load the list (" + (res.error || "no reason") + ")." +
+          (res.detail ? " " + res.detail : "") + " Press Refresh.");
       })
       .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
   }
