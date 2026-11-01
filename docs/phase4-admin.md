@@ -218,14 +218,17 @@ The `Staff` tab is created automatically the first time you sign in — with you
 
 ## Adding a staff member
 
-Open the spreadsheet → **Staff** tab → add a row:
+**In the page (owner only):** `/admin` → **Staff** → **+ Add email** → their Google email → **Add email**.
+
+They can sign in at the same `/admin` URL **with that exact Google account** on their next page load. **Revoke** cuts access at their next click; **Restore** brings it back. The row marked **Owner** (the Google account that deployed `YALA ADMIN`) cannot be revoked, so you cannot lock yourself out.
+
+**Or in the spreadsheet:** **Staff** tab → one row:
 
 | Email | Name | Active |
 |---|---|---|
 | `teacher@gmail.com` | `Amine` | `YES` |
 
-They sign in at the same `/admin` URL **with that exact Google account**. No deploy,
-effective on the next page load. To remove access, set `Active` to `NO` (or delete the row).
+Setting `Active` to `NO` has the same effect as **Revoke**. No deploy either way.
 
 ---
 

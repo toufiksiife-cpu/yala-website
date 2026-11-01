@@ -59,6 +59,9 @@ function doPost(e) {
     if (action === 'addSession') return json_(addSession_(body));
     if (action === 'addRegistration') return json_(addRegistration_(body));
     if (action === 'addTeacher') return json_(addTeacher_(body));
+    if (action === 'staff') return json_(staff_(email));
+    if (action === 'addStaff') return json_(addStaff_(body, email));
+    if (action === 'setStaff') return json_(setStaff_(body, email));
     return json_({ ok: false, error: 'unknown_action' });
   } catch (err) {
     return json_({ ok: false, error: 'server_error' });
@@ -104,11 +107,124 @@ function isStaff_(email) {
 
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][iEmail]).trim().toLowerCase() !== email) continue;
-    if (iActive === -1) return true;
-    var v = String(values[i][iActive]).trim().toLowerCase();
-    return v === '' || v === 'yes' || v === 'true' || v === '1';
+    return iActive === -1 || isActive_(values[i][iActive]);
   }
   return false;
+}
+
+function isActive_(value) {
+  var v = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+  return v === '' || v === 'yes' || v === 'true' || v === '1';
+}
+
+// The owner is whoever runs this script (the account that deployed it).
+function ownerEmail_() {
+  return String(Session.getEffectiveUser().getEmail() || '').toLowerCase();
+}
+
+function isOwner_(email) {
+  return email === ownerEmail_();
+}
+
+function headerIndex_(head, name) {
+  for (var i = 0; i < head.length; i++) {
+    if (String(head[i]).trim().toLowerCase() === name) return i;
+  }
+  return -1;
+}
+
+// Owner-only: the list of emails allowed to sign in, with Active/Revoked.
+function staff_(requester) {
+  if (!isOwner_(requester)) return { ok: false, error: 'owner_only' };
+  var sheet = staffSheet_();
+  var head = headerRow_(sheet);
+  var iEmail = headerIndex_(head, 'email');
+  var iName = headerIndex_(head, 'name');
+  var iActive = headerIndex_(head, 'active');
+  if (iEmail === -1) return missing_('Staff', 'Email', head);
+
+  var values = sheet.getDataRange().getValues();
+  var owner = ownerEmail_();
+  var rows = [];
+  for (var i = 1; i < values.length; i++) {
+    var email = String(values[i][iEmail] || '').trim().toLowerCase();
+    if (!email) continue;
+    var active = iActive === -1 || isActive_(values[i][iActive]);
+    rows.push({
+      Email: email,
+      Name: iName === -1 ? '' : String(values[i][iName] || '').trim(),
+      Status: active ? 'Active' : 'Revoked',
+      _active: active,
+      _owner: email === owner
+    });
+  }
+  return { ok: true, headers: ['Email', 'Name', 'Status'], rows: rows };
+}
+
+function addStaff_(body, requester) {
+  if (!isOwner_(requester)) return { ok: false, error: 'owner_only' };
+  var email = clean_(body.email, 120).toLowerCase();
+  if (!email) return { ok: false, error: 'missing_email' };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return { ok: false, error: 'invalid_email' };
+  var name = clean_(body.name, 80) || 'Staff';
+
+  var sheet = staffSheet_();
+  var head = headerRow_(sheet);
+  var iEmail = headerIndex_(head, 'email');
+  var iName = headerIndex_(head, 'name');
+  var iActive = headerIndex_(head, 'active');
+  if (iEmail === -1) return missing_('Staff', 'Email', head);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][iEmail] || '').trim().toLowerCase() !== email) continue;
+      return { ok: false, error: 'staff_exists', active: iActive === -1 || isActive_(values[i][iActive]) };
+    }
+    var row = head.map(function () { return ''; });
+    row[iEmail] = email;
+    if (iName !== -1) row[iName] = name;
+    if (iActive !== -1) row[iActive] = 'YES';
+    sheet.appendRow(row);
+    return { ok: true, email: email, name: name };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function setStaff_(body, requester) {
+  if (!isOwner_(requester)) return { ok: false, error: 'owner_only' };
+  var email = clean_(body.email, 120).toLowerCase();
+  if (!email) return { ok: false, error: 'missing_email' };
+  // Never lock yourself out.
+  if (isOwner_(email)) return { ok: false, error: 'owner_locked' };
+
+  var on = body.active === true || /^(yes|true|1)$/i.test(String(body.active || '').trim());
+  var sheet = staffSheet_();
+  var head = headerRow_(sheet);
+  var iEmail = headerIndex_(head, 'email');
+  var iActive = headerIndex_(head, 'active');
+  if (iEmail === -1) return missing_('Staff', 'Email', head);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][iEmail] || '').trim().toLowerCase() !== email) continue;
+      if (iActive === -1) {
+        iActive = head.length;
+        sheet.getRange(1, iActive + 1).setValue('Active');
+      }
+      sheet.getRange(i + 1, iActive + 1).setValue(on ? 'YES' : 'NO');
+      return { ok: true, email: email, active: on };
+    }
+    return { ok: false, error: 'not_found' };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Created on first use, owner already inside: a missing tab can never lock everyone out.

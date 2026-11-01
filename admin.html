@@ -106,7 +106,7 @@
     <div class="gsi" id="gsi"></div>
     <div class="form-error" id="signin-error" role="alert" hidden></div>
     <div class="note" style="margin-block-start:16px">
-      Not on the list? Ask the owner to add your email to the <strong>Staff</strong> tab of the academy spreadsheet.
+      Not on the list? Ask the owner to add your Google email to the staff list.
     </div>
   </div>
 
@@ -124,6 +124,7 @@
       <button class="tab" role="tab" data-tab="Payments" aria-selected="false">Payments</button>
       <button class="tab" role="tab" data-tab="Teachers" aria-selected="false">Teachers</button>
       <button class="tab" role="tab" data-tab="Attendance" aria-selected="false">Attendance</button>
+      <button class="tab" role="tab" data-tab="Staff" aria-selected="false">Staff</button>
       <button class="tab" role="tab" id="signout" style="margin-inline-start:auto">Sign out</button>
     </div>
 
@@ -234,6 +235,27 @@
       <div class="actions">
         <button class="btn btn-primary" type="submit" id="teach-save">Add teacher</button>
         <button class="btn btn-outline" type="button" id="teach-cancel">Cancel</button>
+      </div>
+    </form>
+
+    <form id="staff-form" class="pay-form" hidden>
+      <h2>Authorise a staff email</h2>
+      <div class="note" style="background:#fff">
+        They can open this page with that Google account. Revoke to cut access at their next click.
+      </div>
+      <div class="grid">
+        <div>
+          <label for="sf-email">Google email</label>
+          <input id="sf-email" type="email" maxlength="120" required>
+        </div>
+        <div>
+          <label for="sf-name">Name (optional)</label>
+          <input id="sf-name" type="text" maxlength="80" placeholder="Front desk">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" id="sf-save">Add email</button>
+        <button class="btn btn-outline" type="button" id="sf-cancel">Cancel</button>
       </div>
     </form>
 
@@ -454,6 +476,17 @@
       btn.textContent = "Approve";
       btn.dataset.action = "approve";
       name = rowValue(row, /^fullname$/i);
+    } else if (state.tab === "Staff") {
+      if (row._owner) {
+        td.textContent = "Owner";
+        return td;
+      }
+      btn.textContent = row._active ? "Revoke" : "Restore";
+      btn.dataset.action = "staff";
+      btn.dataset.id = rowValue(row, /^email$/i);
+      btn.dataset.active = row._active ? "1" : "0";
+      td.appendChild(btn);
+      return td;
     } else {
       id = rowValue(row, /^studentid$/i);
       if (!id) return td;
@@ -516,7 +549,7 @@
     var table = document.createElement("table");
     var thead = document.createElement("thead");
     var htr = document.createElement("tr");
-    var hasActions = state.tab === "Registrations" || state.tab === "Students";
+    var hasActions = state.tab === "Registrations" || state.tab === "Students" || state.tab === "Staff";
     if (hasActions) {
       var blank = document.createElement("th");
       blank.scope = "col";
@@ -557,6 +590,7 @@
       show(el("pay-form"), false);
       show(el("stu-form"), false);
       show(el("teach-form"), false);
+      show(el("staff-form"), false);
       show(el("notice"), false);
       show(el("schema-panel"), false);
     }
@@ -565,13 +599,20 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab[data-tab]"), function (b) {
       b.setAttribute("aria-selected", b.dataset.tab === state.tab ? "true" : "false");
     });
-    show(el("add-new"), state.tab === "Registrations" || state.tab === "Teachers");
-    el("add-new").textContent = state.tab === "Teachers" ? "+ Add teacher" : "+ Add student";
+    show(el("add-new"), state.tab === "Registrations" || state.tab === "Teachers" || state.tab === "Staff");
+    el("add-new").textContent = state.tab === "Teachers" ? "+ Add teacher"
+      : state.tab === "Staff" ? "+ Add email" : "+ Add student";
 
     if (state.tab === "Attendance") {
       show(el("table-wrap"), false);
       el("status").textContent = "Loading…";
       return loadAttendance();
+    }
+    if (state.tab === "Staff") {
+      show(el("table-wrap"), true);
+      show(el("attendance"), false);
+      el("status").textContent = "Loading…";
+      return loadStaff();
     }
     show(el("table-wrap"), true);
     show(el("attendance"), false);
@@ -591,6 +632,28 @@
           return fail('The tab "' + state.tab + '" does not exist in the spreadsheet.');
         }
         fail("Could not load the list. Try Refresh.");
+      })
+      .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
+  }
+
+  function loadStaff() {
+    ask({ action: "staff", idToken: state.token })
+      .then(function (res) {
+        if (!res.ok) {
+          if (res.error === "owner_only") {
+            state.data = null;
+            el("table-wrap").innerHTML = '<div class="empty">Only the owner account can manage staff access.</div>';
+            el("status").textContent = "";
+            show(el("add-new"), false);
+            return;
+          }
+          if (res.error === "unauthorized" || res.error === "forbidden") return signOut(explain(res));
+          state.data = null;
+          render();
+          return fail("Could not load the staff list. Try Refresh.");
+        }
+        state.data = res;
+        render();
       })
       .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
   }
@@ -619,7 +682,8 @@
       forbidden: "This account is not on the staff list any more.",
       unauthorized: "Your session expired. Sign in again.",
       server_error: "The script hit an error. Apps Script → Executions shows the details.",
-      not_found: "That row is no longer in the sheet. Press Refresh."
+      not_found: "That row is no longer in the sheet. Press Refresh.",
+      owner_only: "Only the owner account can manage staff access."
     };
     if (res.error === "missing_column") {
       return "The " + res.tab + " sheet has no column for " + res.column + ". Columns found: " +
@@ -754,6 +818,14 @@
   /* ---------- add student / teacher ---------- */
 
   function openAdd() {
+    if (state.tab === "Staff") {
+      var staffForm = el("staff-form");
+      staffForm.reset();
+      show(staffForm, true);
+      staffForm.scrollIntoView({ block: "center", behavior: "smooth" });
+      el("sf-email").focus();
+      return;
+    }
     var isTeacher = state.tab === "Teachers";
     var form = el(isTeacher ? "teach-form" : "stu-form");
     form.reset();
@@ -884,6 +956,62 @@
       })
       .catch(function () {
         save.disabled = false;
+        notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
+  /* ---------- staff access ---------- */
+
+  function addStaffEmail(event) {
+    event.preventDefault();
+    var save = el("sf-save");
+    save.disabled = true;
+    ask({
+      action: "addStaff",
+      email: el("sf-email").value,
+      name: el("sf-name").value,
+      idToken: state.token
+    })
+      .then(function (res) {
+        save.disabled = false;
+        if (!res.ok) {
+          if (res.error === "staff_exists") {
+            return notice("That email is already on the list" +
+              (res.active ? " and active." : ", currently revoked. Use Restore."), "warn");
+          }
+          if (res.error === "missing_email") return notice("Enter the Google email.", "err");
+          if (res.error === "invalid_email") return notice("That email does not look right.", "err");
+          return failWrite(res);
+        }
+        show(el("staff-form"), false);
+        notice("Access granted to " + res.email + ".", "ok");
+        load();
+      })
+      .catch(function () {
+        save.disabled = false;
+        notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
+  function toggleStaff(btn) {
+    var email = btn.dataset.id;
+    var revoke = btn.dataset.active === "1";
+    if (revoke && !window.confirm("Remove access for " + email + "?\n\nThey can no longer open this page.")) return;
+
+    btn.disabled = true;
+    ask({ action: "setStaff", email: email, active: revoke ? "NO" : "YES", idToken: state.token })
+      .then(function (res) {
+        btn.disabled = false;
+        if (!res.ok) {
+          if (res.error === "owner_locked") return notice("You cannot revoke your own access.", "warn");
+          if (res.error === "not_found") return notice("That email is no longer in the list. Press Refresh.", "warn");
+          return failWrite(res);
+        }
+        notice((res.active ? "Access restored for " : "Access revoked for ") + res.email + ".", "ok");
+        load();
+      })
+      .catch(function () {
+        btn.disabled = false;
         notice("Could not reach the server. Check the connection, then try again.", "err");
       });
   }
@@ -1174,6 +1302,7 @@
     if (e.target.closest("#add-new")) return openAdd();
     if (e.target.closest("#stu-cancel")) return show(el("stu-form"), false);
     if (e.target.closest("#teach-cancel")) return show(el("teach-form"), false);
+    if (e.target.closest("#sf-cancel")) return show(el("staff-form"), false);
     if (e.target.closest("#pay-cancel")) {
       state.payStudent = null;
       show(el("pay-form"), false);
@@ -1192,12 +1321,14 @@
     if (action) {
       if (action.dataset.action === "approve") return approve(action);
       if (action.dataset.action === "pay") return openPay(action);
+      if (action.dataset.action === "staff") return toggleStaff(action);
     }
   });
 
   el("pay-form").addEventListener("submit", savePayment);
   el("stu-form").addEventListener("submit", addStudent);
   el("teach-form").addEventListener("submit", addTeacher);
+  el("staff-form").addEventListener("submit", addStaffEmail);
   el("sess-form").addEventListener("submit", addSession);
   el("att-session").addEventListener("change", loadRoster);
   el("att-date").addEventListener("change", loadRoster);
