@@ -14,9 +14,10 @@
 // The school's spreadsheet. Not a secret: it is only reachable by this script,
 // which runs as the owner. The sheet itself stays private.
 var SPREADSHEET_ID = '1-rQ6H-NzreQ5DAcgqykpGswJ4DXveWP1PrngJbEr3fk';
-var CACHE_SECONDS = 300;
+// Short: after a price change in the staff page the site must catch up quickly.
+var CACHE_SECONDS = 60;
 
-// Display order on the website. Anything not listed is appended at the end.
+// Fallback display order, used only when Config has no CategoryOrder column.
 var CATEGORY_ORDER = [
   'Primary School Support',
   'Middle School Support',
@@ -67,7 +68,7 @@ function json_(payload) {
 
 function catalog_() {
   var cache = CacheService.getScriptCache();
-  var cached = cache.get('catalog-v1');
+  var cached = cache.get('catalog-v2');
   if (cached) return JSON.parse(cached);
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Config');
@@ -83,38 +84,82 @@ function catalog_() {
     if (col[required[r]] === undefined) throw new Error('Config is missing the column "' + required[r] + '"');
   }
 
+  // These four are added and filled by the staff page (YALA ADMIN). Without
+  // them the old fixed order and the sheet's row order are used.
+  var iOrder = col['CategoryOrder'], iArabic = col['CategoryArabic'];
+  var iSort = col['SortOrder'], iHidden = col['Hidden'];
+
   var byCategory = {};
+  var catRank = {};
+  var catArabic = {};
+
   for (var i = 1; i < values.length; i++) {
     var row = values[i];
     var full = String(row[col['FullCourseName']] || '').trim();
     var category = String(row[col['Category']] || '').trim();
     if (!full || !category) continue; // skips the SettingName/SettingValue rows
+    if (iHidden !== undefined && /^y/i.test(String(row[iHidden] || '').trim())) continue;
 
     if (!byCategory[category]) byCategory[category] = [];
+    var rank = number_(row[iOrder]);
+    if (rank !== null && (catRank[category] === undefined || rank < catRank[category])) catRank[category] = rank;
+    if (!catArabic[category] && iArabic !== undefined) {
+      catArabic[category] = String(row[iArabic] || '').trim();
+    }
     byCategory[category].push({
       name: String(row[col['CourseName']] || '').trim(),
       full: full,
       subject: String(row[col['SubCategory']] || '').trim(),
       level: String(row[col['SubSubCategory']] || '').trim(),
       fee: Number(row[col['MonthlyFeeDZD']]) || 0,
-      room: String(row[col['Room']] || '').trim()
+      room: String(row[col['Room']] || '').trim(),
+      order: number_(row[iSort]),
+      pos: i
     });
   }
 
   var categories = [];
-  for (var o = 0; o < CATEGORY_ORDER.length; o++) {
-    if (byCategory[CATEGORY_ORDER[o]]) {
-      categories.push({ key: CATEGORY_ORDER[o], courses: byCategory[CATEGORY_ORDER[o]] });
-    }
+  for (var key in byCategory) {
+    var known = CATEGORY_ORDER.indexOf(key);
+    categories.push({
+      key: key,
+      ar: catArabic[key] || '',
+      rank: catRank[key] !== undefined ? catRank[key] : (known === -1 ? 1000 : known + 1),
+      pos: byCategory[key][0].pos,
+      courses: byCategory[key]
+    });
   }
-  for (var k in byCategory) {
-    if (CATEGORY_ORDER.indexOf(k) === -1) categories.push({ key: k, courses: byCategory[k] });
+  categories.sort(function (a, b) { return a.rank - b.rank || a.pos - b.pos; });
+
+  var out = [];
+  for (var ci = 0; ci < categories.length; ci++) {
+    var cat = categories[ci];
+    cat.courses.sort(function (a, b) {
+      return (a.order === null ? 1e9 : a.order) - (b.order === null ? 1e9 : b.order) || a.pos - b.pos;
+    });
+    var list = [];
+    for (var cc = 0; cc < cat.courses.length; cc++) {
+      var course = cat.courses[cc];
+      list.push({
+        name: course.name, full: course.full, subject: course.subject,
+        level: course.level, fee: course.fee, room: course.room
+      });
+    }
+    out.push({ key: cat.key, ar: cat.ar, courses: list });
   }
 
-  var payload = { ok: true, currency: 'DZD', updated: new Date().toISOString(), categories: categories };
-  cache.put('catalog-v1', JSON.stringify(payload), CACHE_SECONDS);
+  var payload = { ok: true, currency: 'DZD', updated: new Date().toISOString(), categories: out };
+  cache.put('catalog-v2', JSON.stringify(payload), CACHE_SECONDS);
   return payload;
 }
+
+// Empty cells mean "no order given", not zero.
+function number_(value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  var n = Number(value);
+  return isNaN(n) ? null : n;
+}
+
 
 /* ================= REGISTRATION (public write) ================= */
 
@@ -202,12 +247,17 @@ function courseNames_() {
   var values = sheet.getDataRange().getValues();
   var head = values[0];
   var idx = -1;
+  var iHidden = -1;
   for (var c = 0; c < head.length; c++) {
-    if (String(head[c]).trim() === 'FullCourseName') idx = c;
+    var name = String(head[c]).trim();
+    if (name === 'FullCourseName') idx = c;
+    if (name === 'Hidden') iHidden = c;
   }
   if (idx === -1) return [];
   var out = [];
   for (var i = 1; i < values.length; i++) {
+    // A course hidden in the staff page cannot be picked on the site.
+    if (iHidden !== -1 && /^y/i.test(String(values[i][iHidden] || '').trim())) continue;
     var v = String(values[i][idx] || '').trim();
     if (v) out.push(v);
   }

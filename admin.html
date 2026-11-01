@@ -68,6 +68,7 @@
   .pay-form legend { font-size: .82rem; font-weight: 600; padding-inline: 4px; }
   .pay-form .courses label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 14px 4px 0; font-weight: 600; }
   .pay-form .courses input { width: 17px; height: 17px; accent-color: var(--navy); }
+  #st-courses h2, #te-courses h2 { font-size: .82rem; margin: 10px 0 2px; color: var(--navy); }
   @media (max-width: 560px) { .pay-form .grid { grid-template-columns: 1fr; } }
 
   /* Phase 6: overview */
@@ -91,6 +92,21 @@
   .att-choice input { width: 18px; height: 18px; accent-color: var(--navy); }
   .att-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px; }
   #att-empty { margin-block: 0 12px; }
+
+  /* Phase 9: course catalog */
+  .course-cat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 14px 16px; margin-block-end: 12px; }
+  .course-cat-head { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-block-end: 8px; }
+  .course-cat-head .ar { flex: 1 1 220px; min-width: 0; }
+  .course-cat-head .ar label { display: block; font-size: .78rem; font-weight: 600; margin-block-end: 4px; }
+  .course-cat-head input[type="text"] { width: 100%; padding: 8px 10px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
+  .course-cat-head .key { font-size: .78rem; color: var(--muted); }
+  .course-cat-head .moves { display: flex; gap: 4px; }
+  .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
+  .course-row input[type="text"], .course-row input[type="number"] { width: 100%; padding: 7px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
+  .course-row .hide { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
+  .course-row .moves { display: flex; gap: 4px; }
+  .course-row.is-hidden { opacity: .55; }
+  @media (max-width: 700px) { .course-row { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -133,6 +149,7 @@
       <button class="tab" role="tab" data-tab="Students" aria-selected="false">Students</button>
       <button class="tab" role="tab" data-tab="Payments" aria-selected="false">Payments</button>
       <button class="tab" role="tab" data-tab="Teachers" aria-selected="false">Teachers</button>
+      <button class="tab" role="tab" data-tab="Courses" aria-selected="false">Courses</button>
       <button class="tab" role="tab" data-tab="Attendance" aria-selected="false">Attendance</button>
       <button class="tab" role="tab" data-tab="Staff" aria-selected="false">Staff</button>
       <button class="tab" role="tab" id="signout" style="margin-inline-start:auto">Sign out</button>
@@ -335,6 +352,45 @@
       </form>
     </section>
 
+    <section id="courses" hidden aria-label="Courses">
+      <p class="note">
+        Rename a section, move it up or down, change a price, or hide a course, then press Save.
+        Hidden courses leave the website and the register form but stay on old registrations.
+        The website catches up within a minute.
+      </p>
+      <div id="cat-list"></div>
+      <div class="att-actions">
+        <button class="btn btn-primary" id="cat-save" type="button">Save changes</button>
+        <button class="btn btn-outline" id="cat-add" type="button">+ Add a course</button>
+      </div>
+
+      <form id="cat-new" class="pay-form" hidden>
+        <h2>Add a course</h2>
+        <div class="grid">
+          <div>
+            <label for="nc-cat">Section</label>
+            <select id="nc-cat"></select>
+          </div>
+          <div>
+            <label for="nc-name">Course name (shown on the website)</label>
+            <input id="nc-name" type="text" maxlength="80" required>
+          </div>
+          <div>
+            <label for="nc-fee">Monthly fee (DZD)</label>
+            <input id="nc-fee" type="number" inputmode="numeric" min="0" step="100" required>
+          </div>
+          <div>
+            <label for="nc-room">Room (optional)</label>
+            <input id="nc-room" type="text" maxlength="40">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit" id="nc-save">Add course</button>
+          <button class="btn btn-outline" type="button" id="nc-cancel">Cancel</button>
+        </div>
+      </form>
+    </section>
+
     <div class="toolbar">
       <input id="search" type="search" placeholder="Search name, phone, anything…" aria-label="Search">
       <label class="tool-check" id="unpaid-wrap" hidden>
@@ -363,7 +419,7 @@
 
   var API = window.YALA_ADMIN_API;
   var TOKEN_KEY = "yala-admin-token";
-  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [], teachers: [], balances: null, unpaid: false };
+  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [], teachers: [], balances: null, unpaid: false, catalog: null };
 
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -711,6 +767,8 @@
       show(el("stu-form"), false);
       show(el("teach-form"), false);
       show(el("staff-form"), false);
+      show(el("courses"), false);
+      show(el("cat-new"), false);
       show(el("notice"), false);
       show(el("schema-panel"), false);
     }
@@ -724,6 +782,13 @@
     el("add-new").textContent = state.tab === "Teachers" ? "+ Add teacher"
       : state.tab === "Staff" ? "+ Add email" : "+ Add student";
 
+    if (state.tab === "Courses") {
+      show(el("table-wrap"), false);
+      show(el("attendance"), false);
+      show(el("courses"), true);
+      el("status").textContent = "Loading…";
+      return loadCatalog();
+    }
     if (state.tab === "Attendance") {
       show(el("table-wrap"), false);
       el("status").textContent = "Loading…";
@@ -779,6 +844,229 @@
         render();
       })
       .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
+  }
+
+  /* ---------- courses tab ---------- */
+
+  function loadCatalog() {
+    ask({ action: "catalog", idToken: state.token })
+      .then(function (res) {
+        if (!res.ok) {
+          if (res.error === "unauthorized" || res.error === "forbidden") return signOut(explain(res));
+          el("cat-list").innerHTML = '<div class="empty">Could not load the courses.</div>';
+          return fail("Could not load the courses (" + (res.error || "no reason") + ")." +
+            (res.detail ? " " + res.detail : "") + " Press Refresh.");
+        }
+        state.catalog = res.categories || [];
+        renderCatalog();
+      })
+      .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
+  }
+
+  function renderCatalog() {
+    var box = el("cat-list");
+    box.innerHTML = "";
+    el("status").textContent = "Nothing is saved until you press Save changes";
+
+    state.catalog.forEach(function (cat, index) {
+      var card = document.createElement("div");
+      card.className = "course-cat";
+
+      var head = document.createElement("div");
+      head.className = "course-cat-head";
+
+      var field = document.createElement("div");
+      field.className = "ar";
+      var label = document.createElement("label");
+      label.textContent = "Section name (Arabic)";
+      var input = document.createElement("input");
+      input.type = "text";
+      input.maxLength = 80;
+      input.value = cat.ar || "";
+      input.setAttribute("aria-label", "Arabic name of " + cat.key);
+      input.addEventListener("input", function () { cat.ar = this.value; });
+      field.appendChild(label);
+      field.appendChild(input);
+      head.appendChild(field);
+
+      var key = document.createElement("div");
+      key.className = "key";
+      key.textContent = cat.key + " · " + cat.courses.length +
+        (cat.courses.length === 1 ? " course" : " courses");
+      head.appendChild(key);
+
+      var moves = document.createElement("div");
+      moves.className = "moves";
+      moves.appendChild(moveButton("Up", index, state.catalog));
+      moves.appendChild(moveButton("Down", index, state.catalog));
+      head.appendChild(moves);
+      card.appendChild(head);
+
+      cat.courses.forEach(function (course, i) {
+        card.appendChild(courseRow(cat, course, i));
+      });
+      box.appendChild(card);
+    });
+
+    var select = el("nc-cat");
+    select.innerHTML = "";
+    state.catalog.forEach(function (cat) {
+      var option = document.createElement("option");
+      option.value = cat.key;
+      option.textContent = cat.key;
+      select.appendChild(option);
+    });
+  }
+
+  function moveButton(text, index, list) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "mini";
+    button.textContent = text === "Up" ? "↑" : "↓";
+    button.setAttribute("aria-label", "Move " + text.toLowerCase());
+    var target = text === "Up" ? index - 1 : index + 1;
+    if (target < 0 || target >= list.length) {
+      button.disabled = true;
+      return button;
+    }
+    button.addEventListener("click", function () {
+      list.splice(target, 0, list.splice(index, 1)[0]);
+      renderCatalog();
+    });
+    return button;
+  }
+
+  function courseRow(cat, course, index) {
+    var row = document.createElement("div");
+    row.className = "course-row" + (course.hidden ? " is-hidden" : "");
+
+    var name = document.createElement("input");
+    name.type = "text";
+    name.maxLength = 80;
+    name.value = course.name;
+    name.setAttribute("aria-label", "Course name");
+    name.addEventListener("input", function () { course.name = this.value; });
+    row.appendChild(name);
+
+    var fee = document.createElement("input");
+    fee.type = "number";
+    fee.min = "0";
+    fee.step = "100";
+    fee.inputMode = "numeric";
+    fee.value = course.fee;
+    fee.setAttribute("aria-label", "Monthly fee in DZD");
+    fee.addEventListener("input", function () { course.fee = this.value; });
+    row.appendChild(fee);
+
+    var room = document.createElement("input");
+    room.type = "text";
+    room.maxLength = 40;
+    room.value = course.room;
+    room.placeholder = "Room";
+    room.setAttribute("aria-label", "Room");
+    room.addEventListener("input", function () { course.room = this.value; });
+    row.appendChild(room);
+
+    var hide = document.createElement("label");
+    hide.className = "hide";
+    var check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = !!course.hidden;
+    check.setAttribute("aria-label", "Hide from the website");
+    check.addEventListener("change", function () {
+      course.hidden = this.checked;
+      row.classList.toggle("is-hidden", this.checked);
+    });
+    hide.appendChild(check);
+    hide.appendChild(document.createTextNode("Hidden"));
+    row.appendChild(hide);
+
+    var moves = document.createElement("div");
+    moves.className = "moves";
+    moves.appendChild(moveButton("Up", index, cat.courses));
+    moves.appendChild(moveButton("Down", index, cat.courses));
+    row.appendChild(moves);
+
+    return row;
+  }
+
+  function saveCatalog() {
+    if (!state.catalog) return;
+    var categories = state.catalog.map(function (cat, i) {
+      return { key: cat.key, arabic: cat.ar || "", order: i + 1 };
+    });
+    var courses = [];
+    state.catalog.forEach(function (cat) {
+      cat.courses.forEach(function (course, i) {
+        courses.push({
+          row: course.row, name: course.name, fee: course.fee, room: course.room,
+          hidden: !!course.hidden, order: i + 1
+        });
+      });
+    });
+
+    var save = el("cat-save");
+    save.disabled = true;
+    el("status").textContent = "Saving…";
+    ask({ action: "saveCatalog", idToken: state.token, categories: categories, courses: courses })
+      .then(function (res) {
+        save.disabled = false;
+        if (!res.ok) {
+          if (res.error === "unauthorized" || res.error === "forbidden") return signOut(explain(res));
+          return notice(catalogError(res), "err");
+        }
+        notice("Saved. The website shows the change within a minute.", "ok");
+        loadCatalog();
+      })
+      .catch(function () {
+        save.disabled = false;
+        fail("Could not reach the server. Nothing was saved.");
+      });
+  }
+
+  function catalogError(res) {
+    var messages = {
+      name_required: "A course name is empty.",
+      bad_fee: "A fee is not a valid number.",
+      bad_row: "The course list changed in the spreadsheet. Press Refresh and try again.",
+      too_many: "Too many rows to save at once.",
+      course_exists: "A course with that name already exists in that section.",
+      unknown_category: "That section no longer exists. Press Refresh.",
+      category_required: "Pick a section."
+    };
+    return messages[res.error] || explain(res);
+  }
+
+  function addCourse(event) {
+    event.preventDefault();
+    var save = el("nc-save");
+    save.disabled = true;
+    el("status").textContent = "Adding…";
+    ask({
+      action: "addCourse",
+      idToken: state.token,
+      category: el("nc-cat").value,
+      name: el("nc-name").value,
+      fee: el("nc-fee").value,
+      room: el("nc-room").value
+    })
+      .then(function (res) {
+        save.disabled = false;
+        if (!res.ok) {
+          if (res.error === "unauthorized" || res.error === "forbidden") return signOut(explain(res));
+          return notice(catalogError(res), "err");
+        }
+        el("nc-name").value = "";
+        el("nc-fee").value = "";
+        el("nc-room").value = "";
+        show(el("cat-new"), false);
+        notice("Course added: " + res.full + ". The website updates within a minute.", "ok");
+        loadCatalog();
+      })
+      .catch(function () {
+        save.disabled = false;
+        fail("Could not reach the server. Nothing was added.");
+      });
   }
 
   function loadBalances() {
@@ -1001,24 +1289,32 @@
 
   function fillCourseChoices(box) {
     box.textContent = "Loading…";
-    ask({ action: "sessions", idToken: state.token })
+    ask({ action: "catalog", idToken: state.token })
       .then(function (res) {
         if (!res.ok) return failWrite(res);
-        state.courses = res.courses || [];
-        state.teachers = res.teachers || [];
         box.innerHTML = "";
-        state.courses.forEach(function (course) {
-          var label = document.createElement("label");
-          var input = document.createElement("input");
-          input.type = "checkbox";
-          input.value = course;
-          var span = document.createElement("span");
-          span.textContent = course;
-          label.appendChild(input);
-          label.appendChild(span);
-          box.appendChild(label);
+        (res.categories || []).forEach(function (cat) {
+          var shown = cat.courses.filter(function (course) { return !course.hidden; });
+          if (!shown.length) return;
+          var group = document.createElement("div");
+          group.className = "course-group";
+          var title = document.createElement("h2");
+          title.textContent = cat.key;
+          group.appendChild(title);
+          shown.forEach(function (course) {
+            var label = document.createElement("label");
+            var input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = course.full;
+            var span = document.createElement("span");
+            span.textContent = course.name;
+            label.appendChild(input);
+            label.appendChild(span);
+            group.appendChild(label);
+          });
+          box.appendChild(group);
         });
-        if (!box.children.length) box.textContent = "No course in Config yet.";
+        if (!box.textContent.trim() || !box.querySelector("input")) box.textContent = "No course in Config yet.";
       })
       .catch(function () { box.textContent = "Could not load the courses."; });
   }
@@ -1471,6 +1767,9 @@
       show(el("pay-form"), false);
       return;
     }
+    if (e.target.closest("#cat-save")) return saveCatalog();
+    if (e.target.closest("#cat-add")) return show(el("cat-new"), true);
+    if (e.target.closest("#nc-cancel")) return show(el("cat-new"), false);
     if (e.target.closest("#att-all")) {
       Array.prototype.forEach.call(el("att-roster").querySelectorAll("input[value=Present]"), function (input) {
         input.checked = true;
@@ -1493,11 +1792,12 @@
   el("teach-form").addEventListener("submit", addTeacher);
   el("staff-form").addEventListener("submit", addStaffEmail);
   el("sess-form").addEventListener("submit", addSession);
+  el("cat-new").addEventListener("submit", addCourse);
   el("att-session").addEventListener("change", loadRoster);
   el("att-date").addEventListener("change", loadRoster);
 
   el("search").addEventListener("input", function () {
-    if (state.tab === "Attendance") return;
+    if (state.tab === "Attendance" || state.tab === "Courses") return;
     state.query = this.value.trim();
     render();
   });

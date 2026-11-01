@@ -289,7 +289,7 @@
         var group = document.createElement("div");
         group.className = "course-group";
         var h = document.createElement("h2");
-        h.textContent = isAR ? (AR_CATEGORY[cat.key] || cat.key) : cat.key;
+        h.textContent = isAR ? (cat.ar || AR_CATEGORY[cat.key] || cat.key) : cat.key;
         group.appendChild(h);
         cat.courses.forEach(function (course) {
           var id = "c-" + course.full.replace(/[^a-z0-9]+/gi, "-").toLowerCase();

@@ -134,7 +134,7 @@
       section.className = "cat-block";
 
       var h2 = document.createElement("h2");
-      h2.textContent = isAR ? (AR_CATEGORY[cat.key] || cat.key) : cat.key;
+      h2.textContent = isAR ? (cat.ar || AR_CATEGORY[cat.key] || cat.key) : cat.key;
       section.appendChild(h2);
 
       var count = document.createElement("p");

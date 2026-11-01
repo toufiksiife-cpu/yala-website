@@ -25,6 +25,17 @@ var ALLOWED_TABS = ['Registrations', 'Students', 'Payments', 'Teachers', 'Attend
 var MAX_ROWS = 500;
 var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// The six sections the school started with. Used once, to fill the new Config
+// columns; after that the sheet is the only source of order and labels.
+var CATALOG_DEFAULTS = {
+  'primary school support': [1, 'دعم مدرسي — الابتدائي'],
+  'middle school support': [2, 'دعم مدرسي — المتوسط'],
+  'high school support': [3, 'دعم مدرسي — الثانوي'],
+  'kids language courses': [4, 'دورات اللغات للأطفال'],
+  'adult language courses': [5, 'دورات اللغات للكبار'],
+  'other formation courses': [6, 'دورات تكوينية أخرى']
+};
+
 /* ================= ROUTING ================= */
 
 function doGet(e) {
@@ -56,6 +67,9 @@ function doPost(e) {
     if (action === 'balances') return json_(balances_(body));
     if (action === 'pay') return json_(pay_(body, email));
     if (action === 'sessions') return json_(sessions_());
+    if (action === 'catalog') return json_(catalog_());
+    if (action === 'saveCatalog') return json_(saveCatalog_(body));
+    if (action === 'addCourse') return json_(addCourse_(body));
     if (action === 'roster') return json_(roster_(body));
     if (action === 'attend') return json_(attend_(body, email));
     if (action === 'addSession') return json_(addSession_(body));
@@ -1079,6 +1093,271 @@ function courses_(ss) {
     }
   }
   return out;
+}
+
+/* ================= COURSE CATALOG (staff edit) =================
+ * Config is still the only list of courses: registrations, enrollments and
+ * balances all point at FullCourseName, so nothing here renames that key.
+ * The staff page edits four columns it owns: CategoryOrder, CategoryArabic,
+ * SortOrder, Hidden. They are created and filled on first use.
+ */
+
+function configSheet_() {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Config');
+  if (!sheet) throw new Error('Tab "Config" not found');
+  return sheet;
+}
+
+// Adds any missing catalog column, filling existing rows in one write.
+function ensureCatalog_(sheet) {
+  var head = headerRow_(sheet);
+  var iCat = colAny_(head, ['category']);
+  if (iCat === -1) return head; // catalog_ reports the missing column itself
+
+  var rows = sheet.getLastRow() > 1 ? sheet.getLastRow() - 1 : 0;
+  var cells = rows ? sheet.getRange(2, iCat + 1, rows, 1).getValues() : [];
+  var seen = {};
+  var seq = 0;
+  var meta = [];
+  for (var i = 0; i < cells.length; i++) {
+    var key = String(cells[i][0] || '').trim();
+    var def = CATALOG_DEFAULTS[key.toLowerCase()];
+    if (!seen[key]) { seen[key] = 1; seq++; }
+    meta.push({
+      key: key,
+      order: def ? def[0] : 1000 + seq,
+      arabic: def ? def[1] : '',
+      sort: i + 1
+    });
+  }
+
+  ensureCatalogColumn_(sheet, head, 'CategoryOrder', meta.map(function (m) { return m.key ? m.order : ''; }));
+  ensureCatalogColumn_(sheet, head, 'CategoryArabic', meta.map(function (m) { return m.key ? m.arabic : ''; }));
+  ensureCatalogColumn_(sheet, head, 'SortOrder', meta.map(function (m) { return m.key ? m.sort : ''; }));
+  ensureCatalogColumn_(sheet, head, 'Hidden', meta.map(function () { return ''; }));
+  return head;
+}
+
+function ensureCatalogColumn_(sheet, head, name, values) {
+  if (colAny_(head, [name.toLowerCase()]) !== -1) return;
+  var c = head.length + 1;
+  sheet.getRange(1, c).setValue(name);
+  head.push(name);
+  if (!values.length) return;
+  var column = [];
+  for (var i = 0; i < values.length; i++) column.push([values[i]]);
+  sheet.getRange(2, c, column.length, 1).setValues(column);
+}
+
+function catalog_() {
+  var sheet = configSheet_();
+  var head = ensureCatalog_(sheet);
+  var iCat = colAny_(head, ['category']);
+  var iName = colAny_(head, ['coursename']);
+  var iFull = colAny_(head, ['fullcoursename']);
+  var iFee = colAny_(head, ['monthlyfeedzd']);
+  var iRoom = colAny_(head, ['room']);
+  if (iName === -1) return missing_('Config', 'CourseName', head);
+  if (iFull === -1) return missing_('Config', 'FullCourseName', head);
+  if (iFee === -1) return missing_('Config', 'MonthlyFeeDZD', head);
+  if (iRoom === -1) return missing_('Config', 'Room', head);
+  if (iCat === -1) return missing_('Config', 'Category', head);
+
+  var iOrder = colAny_(head, ['categoryorder']);
+  var iArabic = colAny_(head, ['categoryarabic']);
+  var iSort = colAny_(head, ['sortorder']);
+  var iHidden = colAny_(head, ['hidden']);
+
+  var values = sheet.getDataRange().getValues();
+  var cats = {};
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    var key = String(row[iCat] || '').trim();
+    var full = String(row[iFull] || '').trim();
+    if (!key || !full) continue;
+
+    if (!cats[key]) {
+      cats[key] = { key: key, ar: '', order: null, pos: i, courses: [] };
+    }
+    var cat = cats[key];
+    if (!cat.ar && iArabic !== -1) cat.ar = String(row[iArabic] || '').trim();
+    var order = numberOrNull_(row[iOrder]);
+    if (order !== null && (cat.order === null || order < cat.order)) cat.order = order;
+    cat.courses.push({
+      row: i + 1,
+      name: String(row[iName] || '').trim(),
+      full: full,
+      fee: Number(row[iFee]) || 0,
+      room: String(row[iRoom] || '').trim(),
+      hidden: iHidden !== -1 && /^y/i.test(String(row[iHidden] || '').trim()),
+      order: numberOrNull_(row[iSort])
+    });
+  }
+
+  var list = [];
+  for (var k in cats) list.push(cats[k]);
+  list.sort(function (a, b) { return catalogRank_(a) - catalogRank_(b) || a.pos - b.pos; });
+
+  var out = [];
+  for (var c = 0; c < list.length; c++) {
+    var item = list[c];
+    item.courses.sort(function (a, b) {
+      return (a.order === null ? 1e9 : a.order) - (b.order === null ? 1e9 : b.order) || a.row - b.row;
+    });
+    out.push({ key: item.key, ar: item.ar, order: catalogRank_(item), courses: item.courses });
+  }
+  return { ok: true, categories: out };
+}
+
+// Matches the public API, so what staff see is what visitors get.
+function catalogRank_(cat) {
+  if (cat.order !== null) return cat.order;
+  var def = CATALOG_DEFAULTS[String(cat.key).toLowerCase()];
+  return def ? def[0] : 1000 + cat.pos;
+}
+
+function numberOrNull_(value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  var n = Number(value);
+  return isNaN(n) ? null : n;
+}
+
+// One save for the whole screen: reorder, rename, reprice, hide.
+function saveCatalog_(body) {
+  var sheet = configSheet_();
+  var head = ensureCatalog_(sheet);
+  var iCat = colAny_(head, ['category']);
+  var iName = colAny_(head, ['coursename']);
+  var iFull = colAny_(head, ['fullcoursename']);
+  var iFee = colAny_(head, ['monthlyfeedzd']);
+  var iRoom = colAny_(head, ['room']);
+  var columns = {
+    order: colAny_(head, ['categoryorder']),
+    arabic: colAny_(head, ['categoryarabic']),
+    sort: colAny_(head, ['sortorder']),
+    hidden: colAny_(head, ['hidden'])
+  };
+  for (var key in columns) {
+    if (columns[key] === -1) return missing_('Config', key, head);
+  }
+
+  var cats = Array.isArray(body.categories) ? body.categories : [];
+  var courses = Array.isArray(body.courses) ? body.courses : [];
+  if (cats.length > 60 || courses.length > 800) return { ok: false, error: 'too_many' };
+
+  var values = sheet.getDataRange().getValues();
+  var lastRow = values.length;
+
+  // Validate everything before writing one cell.
+  for (var a = 0; a < courses.length; a++) {
+    var course = courses[a];
+    var row = Number(course.row);
+    if (!(row >= 2 && row <= lastRow) ||
+        !String(values[row - 1][iCat] || '').trim() ||
+        !String(values[row - 1][iFull] || '').trim()) {
+      return { ok: false, error: 'bad_row', row: course.row };
+    }
+    if (!clean_(course.name, 80)) return { ok: false, error: 'name_required', row: course.row };
+    if (!money_(course.fee)) return { ok: false, error: 'bad_fee', row: course.row };
+    if (numberOrNull_(course.order) === null) return { ok: false, error: 'bad_order', row: course.row };
+  }
+  for (var b = 0; b < cats.length; b++) {
+    if (!clean_(cats[b].key, 80)) return { ok: false, error: 'bad_category' };
+    if (numberOrNull_(cats[b].order) === null) return { ok: false, error: 'bad_order' };
+  }
+
+  var pending = {};
+  var touched = {};
+  var put = function (column, row, value) {
+    var list = pending[column];
+    if (!list) {
+      list = [];
+      for (var i = 1; i < values.length; i++) list.push([values[i][column]]);
+      pending[column] = list;
+    }
+    if (list[row - 2][0] !== value) {
+      list[row - 2][0] = value;
+      touched[column] = true;
+    }
+  };
+
+  for (var c = 0; c < courses.length; c++) {
+    var courseRow = Number(courses[c].row);
+    put(iName, courseRow, clean_(courses[c].name, 80));
+    put(iFee, courseRow, money_(courses[c].fee));
+    put(iRoom, courseRow, clean_(courses[c].room, 40));
+    put(columns.hidden, courseRow, courses[c].hidden ? 'YES' : '');
+    put(columns.sort, courseRow, numberOrNull_(courses[c].order));
+  }
+
+  for (var d = 0; d < cats.length; d++) {
+    var catKey = String(cats[d].key).trim();
+    for (var r = 1; r < values.length; r++) {
+      if (String(values[r][iCat] || '').trim() !== catKey) continue;
+      put(columns.order, r + 1, numberOrNull_(cats[d].order));
+      put(columns.arabic, r + 1, clean_(cats[d].arabic, 80));
+    }
+  }
+
+  for (var column in touched) {
+    var list = pending[column];
+    if (list.length) sheet.getRange(2, Number(column) + 1, list.length, 1).setValues(list);
+  }
+  return { ok: true, courses: courses.length, categories: cats.length };
+}
+
+// A new course gets a clean permanent key ("Category - Name").
+function addCourse_(body) {
+  var sheet = configSheet_();
+  var head = ensureCatalog_(sheet);
+  var iCat = colAny_(head, ['category']);
+  var iName = colAny_(head, ['coursename']);
+  var iFull = colAny_(head, ['fullcoursename']);
+  var iFee = colAny_(head, ['monthlyfeedzd']);
+  var iRoom = colAny_(head, ['room']);
+  if (iCat === -1) return missing_('Config', 'Category', head);
+  if (iName === -1) return missing_('Config', 'CourseName', head);
+  if (iFull === -1) return missing_('Config', 'FullCourseName', head);
+  if (iFee === -1) return missing_('Config', 'MonthlyFeeDZD', head);
+  if (iRoom === -1) return missing_('Config', 'Room', head);
+
+  var category = clean_(body.category, 80);
+  var name = clean_(body.name, 80);
+  if (!category) return { ok: false, error: 'category_required' };
+  if (!name) return { ok: false, error: 'name_required' };
+  var fee = money_(body.fee);
+  if (fee === null) return { ok: false, error: 'bad_fee' };
+
+  var iSort = colAny_(head, ['sortorder']);
+  var values = sheet.getDataRange().getValues();
+  var known = {};
+  var full = category + ' - ' + name;
+  var maxSort = 0;
+  for (var i = 1; i < values.length; i++) {
+    var key = String(values[i][iCat] || '').trim();
+    if (key) known[key] = 1;
+    if (String(values[i][iFull] || '').trim() === full) return { ok: false, error: 'course_exists' };
+    var sort = Number(values[i][iSort]);
+    if (isFinite(sort) && sort > maxSort) maxSort = sort;
+  }
+  if (!known[category]) return { ok: false, error: 'unknown_category' };
+
+  var row = head.map(function () { return ''; });
+  row[iCat] = category;
+  row[iName] = name;
+  row[iFull] = full;
+  row[iFee] = fee;
+  row[iRoom] = clean_(body.room, 40);
+  row[iSort] = maxSort + 1;
+  sheet.appendRow(row);
+  return { ok: true, row: sheet.getLastRow(), full: full };
+}
+
+function money_(value) {
+  var n = Number(value);
+  if (value === null || value === undefined || String(value).trim() === '' || !isFinite(n)) return null;
+  if (n < 0 || n > 1000000) return null;
+  return Math.round(n);
 }
 
 function roster_(body) {
