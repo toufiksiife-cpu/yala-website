@@ -534,7 +534,7 @@
     id = rowValue(row, /^studentid$/i);
     if (!id) return td;
     var bal = balanceOf(row);
-    if (bal) {
+    if (bal && bal.due > 0) {
       var chip = document.createElement("span");
       chip.className = "chip " + (bal.balance <= 0 ? "paid" : "due");
       chip.textContent = bal.balance <= 0 ? "Paid" : "Due " + bal.balance.toLocaleString("en-US");
