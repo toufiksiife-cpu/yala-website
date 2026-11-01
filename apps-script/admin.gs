@@ -1098,8 +1098,11 @@ function courses_(ss) {
 /* ================= COURSE CATALOG (staff edit) =================
  * Config is still the only list of courses: registrations, enrollments and
  * balances all point at FullCourseName, so nothing here renames that key.
- * The staff page edits four columns it owns: CategoryOrder, CategoryArabic,
- * SortOrder, Hidden. They are created and filled on first use.
+ * The staff page owns the display columns: CategoryOrder, CategoryArabic,
+ * SubCategoryArabic, SubSubCategoryArabic, SortOrder and Hidden. The tree is
+ * Section (Category) → Sub-section (SubCategory) → Level (SubSubCategory)
+ * → Course. Order inside a section follows SortOrder, so moving a group means
+ * moving its courses.
  */
 
 function configSheet_() {
@@ -1133,6 +1136,8 @@ function ensureCatalog_(sheet) {
 
   ensureCatalogColumn_(sheet, head, 'CategoryOrder', meta.map(function (m) { return m.key ? m.order : ''; }));
   ensureCatalogColumn_(sheet, head, 'CategoryArabic', meta.map(function (m) { return m.key ? m.arabic : ''; }));
+  ensureCatalogColumn_(sheet, head, 'SubCategoryArabic', meta.map(function () { return ''; }));
+  ensureCatalogColumn_(sheet, head, 'SubSubCategoryArabic', meta.map(function () { return ''; }));
   ensureCatalogColumn_(sheet, head, 'SortOrder', meta.map(function (m) { return m.key ? m.sort : ''; }));
   ensureCatalogColumn_(sheet, head, 'Hidden', meta.map(function () { return ''; }));
   return head;
@@ -1157,14 +1162,20 @@ function catalog_() {
   var iFull = colAny_(head, ['fullcoursename']);
   var iFee = colAny_(head, ['monthlyfeedzd']);
   var iRoom = colAny_(head, ['room']);
+  var iSub = colAny_(head, ['subcategory']);
+  var iLevel = colAny_(head, ['subsubcategory']);
   if (iName === -1) return missing_('Config', 'CourseName', head);
   if (iFull === -1) return missing_('Config', 'FullCourseName', head);
   if (iFee === -1) return missing_('Config', 'MonthlyFeeDZD', head);
   if (iRoom === -1) return missing_('Config', 'Room', head);
   if (iCat === -1) return missing_('Config', 'Category', head);
+  if (iSub === -1) return missing_('Config', 'SubCategory', head);
+  if (iLevel === -1) return missing_('Config', 'SubSubCategory', head);
 
   var iOrder = colAny_(head, ['categoryorder']);
   var iArabic = colAny_(head, ['categoryarabic']);
+  var iSubAr = colAny_(head, ['subcategoryarabic']);
+  var iLevelAr = colAny_(head, ['subsubcategoryarabic']);
   var iSort = colAny_(head, ['sortorder']);
   var iHidden = colAny_(head, ['hidden']);
 
@@ -1187,6 +1198,10 @@ function catalog_() {
       row: i + 1,
       name: String(row[iName] || '').trim(),
       full: full,
+      subject: String(row[iSub] || '').trim(),
+      level: String(row[iLevel] || '').trim(),
+      subjectAr: iSubAr !== -1 ? String(row[iSubAr] || '').trim() : '',
+      levelAr: iLevelAr !== -1 ? String(row[iLevelAr] || '').trim() : '',
       fee: Number(row[iFee]) || 0,
       room: String(row[iRoom] || '').trim(),
       hidden: iHidden !== -1 && /^y/i.test(String(row[iHidden] || '').trim()),
@@ -1222,7 +1237,8 @@ function numberOrNull_(value) {
   return isNaN(n) ? null : n;
 }
 
-// One save for the whole screen: reorder, rename, reprice, hide.
+// One save for the whole screen: rename, reorder, reprice, hide, and move
+// courses between sub-sections and levels.
 function saveCatalog_(body) {
   var sheet = configSheet_();
   var head = ensureCatalog_(sheet);
@@ -1231,14 +1247,26 @@ function saveCatalog_(body) {
   var iFull = colAny_(head, ['fullcoursename']);
   var iFee = colAny_(head, ['monthlyfeedzd']);
   var iRoom = colAny_(head, ['room']);
+  var iSub = colAny_(head, ['subcategory']);
+  var iLevel = colAny_(head, ['subsubcategory']);
+  if (iCat === -1) return missing_('Config', 'Category', head);
+  if (iName === -1) return missing_('Config', 'CourseName', head);
+  if (iFull === -1) return missing_('Config', 'FullCourseName', head);
+  if (iFee === -1) return missing_('Config', 'MonthlyFeeDZD', head);
+  if (iRoom === -1) return missing_('Config', 'Room', head);
+  if (iSub === -1) return missing_('Config', 'SubCategory', head);
+  if (iLevel === -1) return missing_('Config', 'SubSubCategory', head);
+
   var columns = {
     order: colAny_(head, ['categoryorder']),
     arabic: colAny_(head, ['categoryarabic']),
+    subArabic: colAny_(head, ['subcategoryarabic']),
+    levelArabic: colAny_(head, ['subsubcategoryarabic']),
     sort: colAny_(head, ['sortorder']),
     hidden: colAny_(head, ['hidden'])
   };
-  for (var key in columns) {
-    if (columns[key] === -1) return missing_('Config', key, head);
+  for (var column in columns) {
+    if (columns[column] === -1) return missing_('Config', column, head);
   }
 
   var cats = Array.isArray(body.categories) ? body.categories : [];
@@ -1261,8 +1289,17 @@ function saveCatalog_(body) {
     if (!money_(course.fee)) return { ok: false, error: 'bad_fee', row: course.row };
     if (numberOrNull_(course.order) === null) return { ok: false, error: 'bad_order', row: course.row };
   }
+
+  // `key` is the section name as the sheet has it now; `name` is the new one.
+  var catNames = [];
+  var seenNames = {};
   for (var b = 0; b < cats.length; b++) {
-    if (!clean_(cats[b].key, 80)) return { ok: false, error: 'bad_category' };
+    var oldKey = clean_(cats[b].key, 80);
+    var newName = clean_(cats[b].name === undefined ? oldKey : cats[b].name, 80);
+    if (!oldKey || !newName) return { ok: false, error: 'bad_category' };
+    if (seenNames[newName.toLowerCase()]) return { ok: false, error: 'duplicate_category' };
+    seenNames[newName.toLowerCase()] = 1;
+    catNames.push(newName);
     if (numberOrNull_(cats[b].order) === null) return { ok: false, error: 'bad_order' };
   }
 
@@ -1286,27 +1323,34 @@ function saveCatalog_(body) {
     put(iName, courseRow, clean_(courses[c].name, 80));
     put(iFee, courseRow, money_(courses[c].fee));
     put(iRoom, courseRow, clean_(courses[c].room, 40));
+    put(iSub, courseRow, clean_(courses[c].subject, 80));
+    put(iLevel, courseRow, clean_(courses[c].level, 80));
+    put(columns.subArabic, courseRow, clean_(courses[c].subjectAr, 80));
+    put(columns.levelArabic, courseRow, clean_(courses[c].levelAr, 80));
     put(columns.hidden, courseRow, courses[c].hidden ? 'YES' : '');
     put(columns.sort, courseRow, numberOrNull_(courses[c].order));
   }
 
   for (var d = 0; d < cats.length; d++) {
-    var catKey = String(cats[d].key).trim();
+    var catKey = clean_(cats[d].key, 80);
     for (var r = 1; r < values.length; r++) {
+      // Match the row's current name, so two sections can swap names in one save.
       if (String(values[r][iCat] || '').trim() !== catKey) continue;
+      put(iCat, r + 1, catNames[d]);
       put(columns.order, r + 1, numberOrNull_(cats[d].order));
       put(columns.arabic, r + 1, clean_(cats[d].arabic, 80));
     }
   }
 
-  for (var column in touched) {
-    var list = pending[column];
-    if (list.length) sheet.getRange(2, Number(column) + 1, list.length, 1).setValues(list);
+  for (var columnName in touched) {
+    var list = pending[columnName];
+    if (list.length) sheet.getRange(2, Number(columnName) + 1, list.length, 1).setValues(list);
   }
   return { ok: true, courses: courses.length, categories: cats.length };
 }
 
-// A new course gets a clean permanent key ("Category - Name").
+// A new course gets a readable permanent key that follows the tree:
+// "Section - Sub-section - Level - Name".
 function addCourse_(body) {
   var sheet = configSheet_();
   var head = ensureCatalog_(sheet);
@@ -1315,13 +1359,19 @@ function addCourse_(body) {
   var iFull = colAny_(head, ['fullcoursename']);
   var iFee = colAny_(head, ['monthlyfeedzd']);
   var iRoom = colAny_(head, ['room']);
+  var iSub = colAny_(head, ['subcategory']);
+  var iLevel = colAny_(head, ['subsubcategory']);
   if (iCat === -1) return missing_('Config', 'Category', head);
   if (iName === -1) return missing_('Config', 'CourseName', head);
   if (iFull === -1) return missing_('Config', 'FullCourseName', head);
   if (iFee === -1) return missing_('Config', 'MonthlyFeeDZD', head);
   if (iRoom === -1) return missing_('Config', 'Room', head);
+  if (iSub === -1) return missing_('Config', 'SubCategory', head);
+  if (iLevel === -1) return missing_('Config', 'SubSubCategory', head);
 
   var category = clean_(body.category, 80);
+  var subject = clean_(body.subject, 80);
+  var level = clean_(body.level, 80);
   var name = clean_(body.name, 80);
   if (!category) return { ok: false, error: 'category_required' };
   if (!name) return { ok: false, error: 'name_required' };
@@ -1331,7 +1381,7 @@ function addCourse_(body) {
   var iSort = colAny_(head, ['sortorder']);
   var values = sheet.getDataRange().getValues();
   var known = {};
-  var full = category + ' - ' + name;
+  var full = [category, subject, level, name].filter(function (x) { return x; }).join(' - ');
   var maxSort = 0;
   for (var i = 1; i < values.length; i++) {
     var key = String(values[i][iCat] || '').trim();
@@ -1344,6 +1394,8 @@ function addCourse_(body) {
 
   var row = head.map(function () { return ''; });
   row[iCat] = category;
+  row[iSub] = subject;
+  row[iLevel] = level;
   row[iName] = name;
   row[iFull] = full;
   row[iFee] = fee;

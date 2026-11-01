@@ -195,6 +195,8 @@ a { color: var(--navy); }
 .choice label { font-weight: 400; }
 .course-group { margin-block-start: 10px; }
 .course-group h2 { font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 4px; }
+.course-group h3 { font-size: .82rem; color: var(--navy); margin: 10px 0 2px; }
+.course-group h4 { font-size: .78rem; font-weight: 600; color: var(--muted); margin: 6px 0 2px 14px; }
 
 .form-error {
   border-inline-start: 4px solid #B42318; background: #FEF3F2; color: #7A271A;

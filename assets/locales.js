@@ -23,7 +23,7 @@ window.I18N_EN = {
   "home.cta1": "Register online",
   "home.ctaWa": "Message us on WhatsApp",
   "home.catsTitle": "Our courses",
-  "home.catsNote": "Full schedules and prices arrive with the courses page.",
+  "home.catsNote": "Full schedules for every course are on the courses page.",
   "cat1": "Primary school support",
   "cat1d": "Reading, writing, maths, French, Arabic",
   "cat2": "Middle school support",
@@ -48,9 +48,9 @@ window.I18N_EN = {
   "home.locCta": "See the map",
 
   // courses
-  "courses.title": "Courses and prices — YALA, Tlemcen",
-  "courses.h1": "Courses and prices",
-  "courses.lead": "School support at every level, languages for children and adults, and training courses. Prices are monthly, in Algerian dinars.",
+  "courses.title": "Courses — YALA, Tlemcen",
+  "courses.h1": "Courses",
+  "courses.lead": "School support at every level, languages for children and adults, and training courses.",
   "courses.loading": "Loading courses…",
   "courses.ctaTitle": "Not sure which course fits?",
   "courses.ctaText": "Tell us the student's level and we will suggest the right course before you register.",

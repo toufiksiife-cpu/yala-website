@@ -7,8 +7,10 @@
  * Setup: see docs/phase2-api.md
  *   Execute as: Me     |     Who has access: Anyone
  *
- * GET  ?action=courses   → categories + courses + monthly fee
+ * GET  ?action=courses   → section → sub-section → level → courses
  * POST (body)            → new registration, Status=Pending
+ *
+ * Prices are staff-only and never leave the sheet through this script.
  *************************************************/
 
 // The school's spreadsheet. Not a secret: it is only reachable by this script,
@@ -68,7 +70,7 @@ function json_(payload) {
 
 function catalog_() {
   var cache = CacheService.getScriptCache();
-  var cached = cache.get('catalog-v2');
+  var cached = cache.get('catalog-v3');
   if (cached) return JSON.parse(cached);
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Config');
@@ -79,15 +81,16 @@ function catalog_() {
   var col = {};
   for (var c = 0; c < head.length; c++) col[String(head[c]).trim()] = c;
 
-  var required = ['Category', 'SubCategory', 'SubSubCategory', 'CourseName', 'FullCourseName', 'MonthlyFeeDZD', 'Room'];
+  var required = ['Category', 'SubCategory', 'SubSubCategory', 'CourseName', 'FullCourseName', 'Room'];
   for (var r = 0; r < required.length; r++) {
     if (col[required[r]] === undefined) throw new Error('Config is missing the column "' + required[r] + '"');
   }
 
-  // These four are added and filled by the staff page (YALA ADMIN). Without
-  // them the old fixed order and the sheet's row order are used.
+  // Added and filled by the staff page (YALA ADMIN). Without them the old
+  // fixed order and the sheet's row order are used.
   var iOrder = col['CategoryOrder'], iArabic = col['CategoryArabic'];
   var iSort = col['SortOrder'], iHidden = col['Hidden'];
+  var iSubAr = col['SubCategoryArabic'], iLevelAr = col['SubSubCategoryArabic'];
 
   var byCategory = {};
   var catRank = {};
@@ -111,7 +114,8 @@ function catalog_() {
       full: full,
       subject: String(row[col['SubCategory']] || '').trim(),
       level: String(row[col['SubSubCategory']] || '').trim(),
-      fee: Number(row[col['MonthlyFeeDZD']]) || 0,
+      subjectAr: iSubAr !== undefined ? String(row[iSubAr] || '').trim() : '',
+      levelAr: iLevelAr !== undefined ? String(row[iLevelAr] || '').trim() : '',
       room: String(row[col['Room']] || '').trim(),
       order: number_(row[iSort]),
       pos: i
@@ -137,20 +141,41 @@ function catalog_() {
     cat.courses.sort(function (a, b) {
       return (a.order === null ? 1e9 : a.order) - (b.order === null ? 1e9 : b.order) || a.pos - b.pos;
     });
-    var list = [];
+
+    // Group in first-appearance order: that order comes from the staff page.
+    var groups = [];
     for (var cc = 0; cc < cat.courses.length; cc++) {
       var course = cat.courses[cc];
-      list.push({
-        name: course.name, full: course.full, subject: course.subject,
-        level: course.level, fee: course.fee, room: course.room
-      });
+      var group = byName_(groups, course.subject);
+      if (!group) {
+        group = { name: course.subject, ar: '', levels: [] };
+        groups.push(group);
+      }
+      if (!group.ar && course.subjectAr) group.ar = course.subjectAr;
+
+      var level = byName_(group.levels, course.level);
+      if (!level) {
+        level = { name: course.level, ar: '', courses: [] };
+        group.levels.push(level);
+      }
+      if (!level.ar && course.levelAr) level.ar = course.levelAr;
+
+      // No price here on purpose: prices are staff-only.
+      level.courses.push({ name: course.name, full: course.full, room: course.room });
     }
-    out.push({ key: cat.key, ar: cat.ar, courses: list });
+    out.push({ key: cat.key, ar: cat.ar, groups: groups });
   }
 
-  var payload = { ok: true, currency: 'DZD', updated: new Date().toISOString(), categories: out };
-  cache.put('catalog-v2', JSON.stringify(payload), CACHE_SECONDS);
+  var payload = { ok: true, updated: new Date().toISOString(), categories: out };
+  cache.put('catalog-v3', JSON.stringify(payload), CACHE_SECONDS);
   return payload;
+}
+
+function byName_(list, name) {
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].name === name) return list[i];
+  }
+  return null;
 }
 
 // Empty cells mean "no order given", not zero.

@@ -198,8 +198,7 @@
     errTooMany: "تم إرسال تسجيل بهذا الرقم مؤخراً. أعد المحاولة بعد 10 دقائق أو راسلنا على واتساب.",
     errGeneric: "تعذّر إرسال الطلب. راسلنا على واتساب.",
     sending: "جارٍ الإرسال…",
-    submit: "إرسال التسجيل",
-    fee: "دج/شهر"
+    submit: "إرسال التسجيل"
   } : {
     errName: "Enter the full name (at least 3 characters).",
     errDob: "Date of birth is not valid.",
@@ -212,8 +211,7 @@
     errTooMany: "A registration from this number was just sent. Try again in 10 minutes or message us on WhatsApp.",
     errGeneric: "The request could not be sent. Message us on WhatsApp.",
     sending: "Sending…",
-    submit: "Send registration",
-    fee: "DZD/month"
+    submit: "Send registration"
   };
 
   var form = document.getElementById("reg");
@@ -286,28 +284,42 @@
       var box = document.getElementById("course-list");
       box.innerHTML = "";
       data.categories.forEach(function (cat) {
-        var group = document.createElement("div");
-        group.className = "course-group";
+        var section = document.createElement("div");
+        section.className = "course-group";
         var h = document.createElement("h2");
         h.textContent = isAR ? (cat.ar || AR_CATEGORY[cat.key] || cat.key) : cat.key;
-        group.appendChild(h);
-        cat.courses.forEach(function (course) {
-          var id = "c-" + course.full.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-          var label = document.createElement("label");
-          label.className = "choice";
-          label.setAttribute("for", id);
-          var input = document.createElement("input");
-          input.type = "checkbox";
-          input.name = "courses";
-          input.value = course.full;
-          input.id = id;
-          var span = document.createElement("span");
-          span.textContent = course.name + " — " + course.fee + " " + T.fee;
-          label.appendChild(input);
-          label.appendChild(span);
-          group.appendChild(label);
+        section.appendChild(h);
+        (cat.groups || []).forEach(function (group) {
+          if (group.name) {
+            var sh = document.createElement("h3");
+            sh.textContent = isAR ? (group.ar || group.name) : group.name;
+            section.appendChild(sh);
+          }
+          group.levels.forEach(function (level) {
+            if (level.name) {
+              var lh = document.createElement("h4");
+              lh.textContent = isAR ? (level.ar || level.name) : level.name;
+              section.appendChild(lh);
+            }
+            level.courses.forEach(function (course) {
+              var id = "c-" + course.full.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+              var label = document.createElement("label");
+              label.className = "choice";
+              label.setAttribute("for", id);
+              var input = document.createElement("input");
+              input.type = "checkbox";
+              input.name = "courses";
+              input.value = course.full;
+              input.id = id;
+              var span = document.createElement("span");
+              span.textContent = course.name;
+              label.appendChild(input);
+              label.appendChild(span);
+              section.appendChild(label);
+            });
+          });
         });
-        box.appendChild(group);
+        box.appendChild(section);
       });
     })
     .catch(function () {

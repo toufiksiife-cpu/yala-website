@@ -69,6 +69,8 @@
   .pay-form .courses label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 14px 4px 0; font-weight: 600; }
   .pay-form .courses input { width: 17px; height: 17px; accent-color: var(--navy); }
   #st-courses h2, #te-courses h2 { font-size: .82rem; margin: 10px 0 2px; color: var(--navy); }
+  #st-courses h3, #te-courses h3 { font-size: .78rem; margin: 8px 0 2px; color: var(--muted); }
+  #st-courses h4, #te-courses h4 { font-size: .74rem; margin: 6px 0 2px 14px; color: var(--muted); }
   @media (max-width: 560px) { .pay-form .grid { grid-template-columns: 1fr; } }
 
   /* Phase 6: overview */
@@ -93,14 +95,17 @@
   .att-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px; }
   #att-empty { margin-block: 0 12px; }
 
-  /* Phase 9: course catalog */
+  /* Course catalog tree: section → sub-section → level → course */
   .course-cat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 14px 16px; margin-block-end: 12px; }
   .course-cat-head { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-block-end: 8px; }
-  .course-cat-head .ar { flex: 1 1 220px; min-width: 0; }
-  .course-cat-head .ar label { display: block; font-size: .78rem; font-weight: 600; margin-block-end: 4px; }
+  .course-cat-head .name, .course-cat-head .ar { flex: 1 1 200px; min-width: 0; }
+  .course-cat-head .name label, .course-cat-head .ar label { display: block; font-size: .78rem; font-weight: 600; margin-block-end: 4px; }
   .course-cat-head input[type="text"] { width: 100%; padding: 8px 10px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
   .course-cat-head .key { font-size: .78rem; color: var(--muted); }
   .course-cat-head .moves { display: flex; gap: 4px; }
+  .sub-block { margin-block-start: 14px; padding-block-start: 10px; border-block-start: 1px dashed #D8DEE7; }
+  .sub-head .key, .level-head .key { font-weight: 600; color: var(--ink); font-size: .82rem; }
+  .level-block { margin-block-start: 10px; margin-inline-start: 14px; padding-inline-start: 12px; border-inline-start: 2px solid var(--line); }
   .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
   .course-row input[type="text"], .course-row input[type="number"] { width: 100%; padding: 7px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
   .course-row .hide { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
@@ -354,7 +359,8 @@
 
     <section id="courses" hidden aria-label="Courses">
       <p class="note">
-        Rename a section, move it up or down, change a price, or hide a course, then press Save.
+        Order is section → sub-section → level → course, and the website shows it exactly like this.
+        Rename any level, move it with ↑ ↓, change a price, or hide a course, then press Save.
         Hidden courses leave the website and the register form but stay on old registrations.
         The website catches up within a minute.
       </p>
@@ -372,11 +378,19 @@
             <select id="nc-cat"></select>
           </div>
           <div>
+            <label for="nc-sub">Sub-section (e.g. English, First year)</label>
+            <input id="nc-sub" type="text" maxlength="80">
+          </div>
+          <div>
+            <label for="nc-level">Level (e.g. A1, Mathematics)</label>
+            <input id="nc-level" type="text" maxlength="80">
+          </div>
+          <div>
             <label for="nc-name">Course name (shown on the website)</label>
             <input id="nc-name" type="text" maxlength="80" required>
           </div>
           <div>
-            <label for="nc-fee">Monthly fee (DZD)</label>
+            <label for="nc-fee">Monthly fee (DZD, staff only)</label>
             <input id="nc-fee" type="number" inputmode="numeric" min="0" step="100" required>
           </div>
           <div>
@@ -874,37 +888,69 @@
 
       var head = document.createElement("div");
       head.className = "course-cat-head";
-
-      var field = document.createElement("div");
-      field.className = "ar";
-      var label = document.createElement("label");
-      label.textContent = "Section name (Arabic)";
-      var input = document.createElement("input");
-      input.type = "text";
-      input.maxLength = 80;
-      input.value = cat.ar || "";
-      input.setAttribute("aria-label", "Arabic name of " + cat.key);
-      input.addEventListener("input", function () { cat.ar = this.value; });
-      field.appendChild(label);
-      field.appendChild(input);
-      head.appendChild(field);
-
-      var key = document.createElement("div");
-      key.className = "key";
-      key.textContent = cat.key + " · " + cat.courses.length +
-        (cat.courses.length === 1 ? " course" : " courses");
-      head.appendChild(key);
-
-      var moves = document.createElement("div");
-      moves.className = "moves";
-      moves.appendChild(moveButton("Up", index, state.catalog));
-      moves.appendChild(moveButton("Down", index, state.catalog));
-      head.appendChild(moves);
+      nameFields(head, "Section", cat.name || cat.key, cat.ar, function (name, arabic) {
+        cat.name = name;
+        cat.ar = arabic;
+      });
+      head.appendChild(countLabel(cat.courses.length));
+      head.appendChild(movePair(index, state.catalog.length, function (target) {
+        state.catalog.splice(target, 0, state.catalog.splice(index, 1)[0]);
+        renderCatalog();
+      }));
       card.appendChild(head);
 
-      cat.courses.forEach(function (course, i) {
-        card.appendChild(courseRow(cat, course, i));
+      var groups = groupCourses(cat.courses);
+      groups.forEach(function (group, gi) {
+        var sub = document.createElement("div");
+        sub.className = "sub-block";
+
+        var subHead = document.createElement("div");
+        subHead.className = "course-cat-head sub-head";
+        nameFields(subHead, "Sub-section", group.name, group.ar, function (name, arabic) {
+          group.name = name;
+          group.ar = arabic;
+          group.courses.forEach(function (course) {
+            course.subject = name;
+            course.subjectAr = arabic;
+          });
+        });
+        subHead.appendChild(countLabel(group.courses.length));
+        subHead.appendChild(movePair(gi, groups.length, function (target) {
+          groups.splice(target, 0, groups.splice(gi, 1)[0]);
+          flattenGroups(cat, groups);
+        }));
+        sub.appendChild(subHead);
+
+        group.levels.forEach(function (level, li) {
+          var levelBox = document.createElement("div");
+          levelBox.className = "level-block";
+
+          var levelHead = document.createElement("div");
+          levelHead.className = "course-cat-head level-head";
+          nameFields(levelHead, "Level", level.name, level.ar, function (name, arabic) {
+            level.name = name;
+            level.ar = arabic;
+            level.courses.forEach(function (course) {
+              course.level = name;
+              course.levelAr = arabic;
+            });
+          });
+          levelHead.appendChild(countLabel(level.courses.length));
+          levelHead.appendChild(movePair(li, group.levels.length, function (target) {
+            group.levels.splice(target, 0, group.levels.splice(li, 1)[0]);
+            flattenGroups(cat, groups);
+          }));
+          levelBox.appendChild(levelHead);
+
+          level.courses.forEach(function (course) {
+            levelBox.appendChild(courseRow(cat, course));
+          });
+          sub.appendChild(levelBox);
+        });
+
+        card.appendChild(sub);
       });
+
       box.appendChild(card);
     });
 
@@ -913,30 +959,113 @@
     state.catalog.forEach(function (cat) {
       var option = document.createElement("option");
       option.value = cat.key;
-      option.textContent = cat.key;
+      option.textContent = cat.name || cat.key;
       select.appendChild(option);
     });
   }
 
-  function moveButton(text, index, list) {
-    var button = document.createElement("button");
-    button.type = "button";
-    button.className = "mini";
-    button.textContent = text === "Up" ? "↑" : "↓";
-    button.setAttribute("aria-label", "Move " + text.toLowerCase());
-    var target = text === "Up" ? index - 1 : index + 1;
-    if (target < 0 || target >= list.length) {
-      button.disabled = true;
-      return button;
-    }
-    button.addEventListener("click", function () {
-      list.splice(target, 0, list.splice(index, 1)[0]);
-      renderCatalog();
-    });
-    return button;
+  // One name field (English display) plus its Arabic version.
+  function nameFields(parent, labelText, value, arabic, onChange) {
+    var name = document.createElement("div");
+    name.className = "name";
+    var nameLabel = document.createElement("label");
+    nameLabel.textContent = labelText;
+    var nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.maxLength = 80;
+    nameInput.value = value || "";
+    nameInput.setAttribute("aria-label", labelText);
+
+    var ar = document.createElement("div");
+    ar.className = "ar";
+    var arLabel = document.createElement("label");
+    arLabel.textContent = "Arabic";
+    var arInput = document.createElement("input");
+    arInput.type = "text";
+    arInput.maxLength = 80;
+    arInput.value = arabic || "";
+    arInput.setAttribute("aria-label", "Arabic " + labelText.toLowerCase());
+
+    function changed() { onChange(nameInput.value, arInput.value); }
+    nameInput.addEventListener("input", changed);
+    arInput.addEventListener("input", changed);
+
+    name.appendChild(nameLabel);
+    name.appendChild(nameInput);
+    ar.appendChild(arLabel);
+    ar.appendChild(arInput);
+    parent.appendChild(name);
+    parent.appendChild(ar);
   }
 
-  function courseRow(cat, course, index) {
+  function countLabel(count) {
+    var key = document.createElement("div");
+    key.className = "key";
+    key.textContent = count + (count === 1 ? " course" : " courses");
+    return key;
+  }
+
+  function movePair(index, length, onMove) {
+    var moves = document.createElement("div");
+    moves.className = "moves";
+    [["Up", -1], ["Down", 1]].forEach(function (spec) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "mini";
+      button.textContent = spec[1] < 0 ? "↑" : "↓";
+      button.setAttribute("aria-label", "Move " + spec[0].toLowerCase());
+      var target = index + spec[1];
+      if (target < 0 || target >= length) button.disabled = true;
+      else button.addEventListener("click", function () { onMove(target); });
+      moves.appendChild(button);
+    });
+    return moves;
+  }
+
+  function groupCourses(courses) {
+    var groups = [];
+    courses.forEach(function (course) {
+      var group = findByName(groups, course.subject || "");
+      if (!group) {
+        group = { name: course.subject || "", ar: course.subjectAr || "", courses: [], levels: [] };
+        groups.push(group);
+      } else if (!group.ar && course.subjectAr) {
+        group.ar = course.subjectAr;
+      }
+      group.courses.push(course);
+
+      var level = findByName(group.levels, course.level || "");
+      if (!level) {
+        level = { name: course.level || "", ar: course.levelAr || "", courses: [] };
+        group.levels.push(level);
+      } else if (!level.ar && course.levelAr) {
+        level.ar = course.levelAr;
+      }
+      level.courses.push(course);
+    });
+    return groups;
+  }
+
+  function findByName(list, name) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].name === name) return list[i];
+    }
+    return null;
+  }
+
+  // The sheet stores one row per course, so a group's position is the position
+  // of its courses. Rebuilding the flat list is what saves that order.
+  function flattenGroups(cat, groups) {
+    cat.courses = [];
+    groups.forEach(function (group) {
+      group.levels.forEach(function (level) {
+        level.courses.forEach(function (course) { cat.courses.push(course); });
+      });
+    });
+    renderCatalog();
+  }
+
+  function courseRow(cat, course) {
     var row = document.createElement("div");
     row.className = "course-row" + (course.hidden ? " is-hidden" : "");
 
@@ -983,8 +1112,28 @@
 
     var moves = document.createElement("div");
     moves.className = "moves";
-    moves.appendChild(moveButton("Up", index, cat.courses));
-    moves.appendChild(moveButton("Down", index, cat.courses));
+    [-1, 1].forEach(function (step) {
+      var index = cat.courses.indexOf(course);
+      var target = index + step;
+      var other = cat.courses[target];
+      var sameLevel = other && (other.subject || "") === (course.subject || "") &&
+        (other.level || "") === (course.level || "");
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "mini";
+      button.textContent = step < 0 ? "↑" : "↓";
+      button.setAttribute("aria-label", step < 0 ? "Move up" : "Move down");
+      if (!sameLevel) {
+        button.disabled = true;
+      } else {
+        button.addEventListener("click", function () {
+          cat.courses[target] = course;
+          cat.courses[index] = other;
+          renderCatalog();
+        });
+      }
+      moves.appendChild(button);
+    });
     row.appendChild(moves);
 
     return row;
@@ -993,13 +1142,15 @@
   function saveCatalog() {
     if (!state.catalog) return;
     var categories = state.catalog.map(function (cat, i) {
-      return { key: cat.key, arabic: cat.ar || "", order: i + 1 };
+      return { key: cat.key, name: cat.name || cat.key, arabic: cat.ar || "", order: i + 1 };
     });
     var courses = [];
     state.catalog.forEach(function (cat) {
       cat.courses.forEach(function (course, i) {
         courses.push({
           row: course.row, name: course.name, fee: course.fee, room: course.room,
+          subject: course.subject || "", level: course.level || "",
+          subjectAr: course.subjectAr || "", levelAr: course.levelAr || "",
           hidden: !!course.hidden, order: i + 1
         });
       });
@@ -1032,7 +1183,8 @@
       too_many: "Too many rows to save at once.",
       course_exists: "A course with that name already exists in that section.",
       unknown_category: "That section no longer exists. Press Refresh.",
-      category_required: "Pick a section."
+      category_required: "Pick a section.",
+      duplicate_category: "Two sections cannot have the same name."
     };
     return messages[res.error] || explain(res);
   }
@@ -1046,6 +1198,8 @@
       action: "addCourse",
       idToken: state.token,
       category: el("nc-cat").value,
+      subject: el("nc-sub").value,
+      level: el("nc-level").value,
       name: el("nc-name").value,
       fee: el("nc-fee").value,
       room: el("nc-room").value
@@ -1056,6 +1210,8 @@
           if (res.error === "unauthorized" || res.error === "forbidden") return signOut(explain(res));
           return notice(catalogError(res), "err");
         }
+        el("nc-sub").value = "";
+        el("nc-level").value = "";
         el("nc-name").value = "";
         el("nc-fee").value = "";
         el("nc-room").value = "";
@@ -1296,23 +1452,37 @@
         (res.categories || []).forEach(function (cat) {
           var shown = cat.courses.filter(function (course) { return !course.hidden; });
           if (!shown.length) return;
-          var group = document.createElement("div");
-          group.className = "course-group";
+          var section = document.createElement("div");
+          section.className = "course-group";
           var title = document.createElement("h2");
-          title.textContent = cat.key;
-          group.appendChild(title);
-          shown.forEach(function (course) {
-            var label = document.createElement("label");
-            var input = document.createElement("input");
-            input.type = "checkbox";
-            input.value = course.full;
-            var span = document.createElement("span");
-            span.textContent = course.name;
-            label.appendChild(input);
-            label.appendChild(span);
-            group.appendChild(label);
+          title.textContent = cat.name || cat.key;
+          section.appendChild(title);
+          groupCourses(shown).forEach(function (group) {
+            if (group.name) {
+              var sub = document.createElement("h3");
+              sub.textContent = group.name;
+              section.appendChild(sub);
+            }
+            group.levels.forEach(function (level) {
+              if (level.name) {
+                var subsub = document.createElement("h4");
+                subsub.textContent = level.name;
+                section.appendChild(subsub);
+              }
+              level.courses.forEach(function (course) {
+                var label = document.createElement("label");
+                var input = document.createElement("input");
+                input.type = "checkbox";
+                input.value = course.full;
+                var span = document.createElement("span");
+                span.textContent = course.name;
+                label.appendChild(input);
+                label.appendChild(span);
+                section.appendChild(label);
+              });
+            });
           });
-          box.appendChild(group);
+          box.appendChild(section);
         });
         if (!box.textContent.trim() || !box.querySelector("input")) box.textContent = "No course in Config yet.";
       })

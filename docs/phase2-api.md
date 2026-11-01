@@ -3,7 +3,7 @@
 Why a separate project: your `Code.gs` contains `findDuplicates_()` and `login()`.
 Putting `?action=` there and setting that deployment to *Anyone* would let strangers
 call those functions and read student names and phone numbers. A separate project
-contains only read-only course code, so the worst case is "someone read the price list".
+contains only read-only course code, so the worst case is "someone read the course list".
 
 ## 1. Create the project
 
@@ -27,7 +27,8 @@ contains only read-only course code, so the worst case is "someone read the pric
 ## 3. Test it
 
 Open `<URL>?action=courses` in a private/incognito window (proves it works without login).
-You should get JSON starting with `{"ok":true,"currency":"DZD"`.
+You should get JSON starting with `{"ok":true,"updated":`, with a `categories` list
+of sections, sub-sections, levels and courses. No prices are in it.
 
 If it returns a Google sign-in page, step 2.5 is wrong.
 If it returns `server_error`, the message tells you which column is missing.
@@ -36,14 +37,14 @@ If it returns `server_error`, the message tells you which column is missing.
 
 | Field | Public? |
 |---|---|
-| Course name, subject, level, monthly fee, room | yes |
-| Category list | yes |
+| Section, sub-section, level, course name, room | yes |
+| Monthly fees and any other price | **no — never sent** |
 | Students, registrations, payments, parents, phones, emails | **no — not in this script** |
 | Sheet contents beyond `Config` | no |
 
-Cached 5 minutes: edits in the Sheet appear on the site within 5 minutes.
+Cached 60 seconds: edits in the staff page appear on the site within a minute.
 
 ## 5. Later changes
 
-Courses and prices need **no redeploy** — edit the Sheet, wait up to 5 minutes.
+Courses need **no redeploy** — edit them on the staff page, wait up to a minute.
 Only editing `api.gs` itself requires **Deploy → Manage deployments → ✏️ → New version**.

@@ -253,7 +253,8 @@ Setting `Active` to `NO` has the same effect as **Revoke**. No deploy either way
 
 | | Public site | `/admin` |
 |---|---|---|
-| Courses and prices | yes | yes |
+| Courses (no prices) | yes | yes |
+| Monthly fees and other prices | **no** | staff only |
 | Names, phones, emails, parents, notes | **no** | staff only |
 | Can change the Sheet | no | **not yet** — read-only in this phase |
 
