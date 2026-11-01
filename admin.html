@@ -32,6 +32,16 @@
   .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; background: var(--bg-soft); color: var(--muted); }
   .chip.pending { background: #FFF1E3; color: #8A4B00; }
   .chip.active { background: #EAF6E1; color: #3F5F14; }
+  .chip.contacted { background: #E8F1FB; color: #1E456F; }
+  .chip.rejected { background: #FEF3F2; color: #7A271A; }
+  .chip.paid { background: #EAF6E1; color: #3F5F14; }
+  .chip.due { background: #FEF3F2; color: #7A271A; }
+  .chip.minor { background: #FFF1E3; color: #8A4B00; }
+  .tool-check { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); cursor: pointer; }
+  .tool-check input { width: 17px; height: 17px; accent-color: var(--navy); }
+  td select.mini { padding: 4px 6px; }
+  td .chip + .mini, td select.mini + .mini { margin-inline-start: 6px; }
+  td a.mini { text-decoration: none; margin-inline-end: 6px; }
   .empty { padding: 40px 20px; text-align: center; color: var(--muted); }
   .note { background: var(--bg-soft); border-radius: 8px; padding: 12px 14px; font-size: .88rem; color: var(--muted); }
   .gsi { margin-block-start: 8px; }
@@ -327,6 +337,9 @@
 
     <div class="toolbar">
       <input id="search" type="search" placeholder="Search name, phone, anything…" aria-label="Search">
+      <label class="tool-check" id="unpaid-wrap" hidden>
+        <input type="checkbox" id="unpaid"> Unpaid this month
+      </label>
       <button class="btn btn-outline" id="refresh" type="button">Refresh</button>
       <button class="btn btn-outline" id="check" type="button">Check spreadsheet</button>
       <button class="btn btn-primary" id="add-new" type="button" hidden>Add</button>
@@ -350,7 +363,7 @@
 
   var API = window.YALA_ADMIN_API;
   var TOKEN_KEY = "yala-admin-token";
-  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [], teachers: [] };
+  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [], teachers: [], balances: null, unpaid: false };
 
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -428,7 +441,9 @@
 
       var pending = 0;
       res[0].rows.forEach(function (row) {
-        if (/^pending$/i.test(String(rowValue(row, /^status$/i)).trim())) pending++;
+        // Everything not finished is still on the front desk's list.
+        var status = String(rowValue(row, /^status$/i)).trim().toLowerCase();
+        if (status !== "approved" && status !== "rejected") pending++;
       });
 
       var active = 0;
@@ -469,14 +484,41 @@
     if (state.tab === "Registrations") {
       id = rowValue(row, /^registrationid$/i);
       if (!id) return td;
-      if (/^(approved|rejected)$/i.test(String(rowValue(row, /^status$/i)).trim())) {
+      var status = String(rowValue(row, /^status$/i)).trim() || "Pending";
+      if (/^approved$/i.test(status)) {
         td.textContent = "—";
         return td;
       }
-      btn.textContent = "Approve";
-      btn.dataset.action = "approve";
       name = rowValue(row, /^fullname$/i);
-    } else if (state.tab === "Staff") {
+
+      var select = document.createElement("select");
+      select.className = "mini";
+      select.setAttribute("aria-label", "Follow-up status");
+      select.dataset.action = "regStatus";
+      select.dataset.id = id;
+      select.dataset.was = status;
+      ["Pending", "Contacted", "No answer", "Rejected"].forEach(function (option) {
+        var o = document.createElement("option");
+        o.value = option;
+        o.textContent = option;
+        select.appendChild(o);
+      });
+      select.value = ["Pending", "Contacted", "No answer", "Rejected"].filter(function (o) {
+        return o.toLowerCase() === status.toLowerCase();
+      })[0] || "Pending";
+      td.appendChild(select);
+
+      if (!/^rejected$/i.test(status)) {
+        btn.textContent = "Approve";
+        btn.dataset.action = "approve";
+        btn.dataset.id = id;
+        btn.dataset.name = name || "";
+        td.appendChild(btn);
+      }
+      return td;
+    }
+
+    if (state.tab === "Staff") {
       if (row._owner) {
         td.textContent = "Owner";
         return td;
@@ -487,25 +529,84 @@
       btn.dataset.active = row._active ? "1" : "0";
       td.appendChild(btn);
       return td;
-    } else {
-      id = rowValue(row, /^studentid$/i);
-      if (!id) return td;
-      btn.textContent = "Payment";
-      btn.dataset.action = "pay";
-      name = rowValue(row, /^fullname$/i);
     }
+
+    id = rowValue(row, /^studentid$/i);
+    if (!id) return td;
+    var bal = balanceOf(row);
+    if (bal) {
+      var chip = document.createElement("span");
+      chip.className = "chip " + (bal.balance <= 0 ? "paid" : "due");
+      chip.textContent = bal.balance <= 0 ? "Paid" : "Due " + bal.balance.toLocaleString("en-US");
+      chip.title = "This month: " + bal.paid.toLocaleString("en-US") + " paid of " + bal.due.toLocaleString("en-US") + " DZD";
+      td.appendChild(chip);
+    }
+    btn.textContent = "Payment";
+    btn.dataset.action = "pay";
+    name = rowValue(row, /^fullname$/i);
     btn.dataset.id = id;
     btn.dataset.name = name || "";
     td.appendChild(btn);
     return td;
   }
 
+  function balanceOf(row) {
+    if (!state.balances) return null;
+    var id = String(rowValue(row, /^studentid$/i)).trim();
+    for (var i = 0; i < state.balances.rows.length; i++) {
+      if (state.balances.rows[i].studentId === id) return state.balances.rows[i];
+    }
+    return null;
+  }
+
+  // Local numbers: 0551… → 213551… for wa.me, which wants a country code.
+  function intlPhone(text) {
+    var d = String(text === null || text === undefined ? "" : text).replace(/\D/g, "");
+    if (d.indexOf("00") === 0) d = d.slice(2);
+    if (d.charAt(0) === "0") return "213" + d.slice(1);
+    return d;
+  }
+
+  function contactCell(value) {
+    var td = document.createElement("td");
+    var text = value === null || value === undefined ? "" : String(value);
+    var digits = text.replace(/\D/g, "");
+    if (!digits) {
+      td.textContent = text;
+      return td;
+    }
+    var wa = document.createElement("a");
+    wa.className = "mini";
+    wa.href = "https://wa.me/" + intlPhone(digits);
+    wa.target = "_blank";
+    wa.rel = "noopener";
+    wa.textContent = "WhatsApp";
+    td.appendChild(wa);
+
+    var call = document.createElement("a");
+    call.className = "mini";
+    call.href = "tel:" + text.replace(/[^\d+]/g, "");
+    call.textContent = "Call";
+    td.appendChild(call);
+    return td;
+  }
+
   function cell(value, header) {
     var td = document.createElement("td");
     var text = value === null || value === undefined ? "" : String(value);
+    if (state.tab === "Registrations" && /^phone$/i.test(header) && text) {
+      return contactCell(text);
+    }
+    if (/^under18$/i.test(header) && /^(yes|true|1)$/i.test(text.trim())) {
+      var minor = document.createElement("span");
+      minor.className = "chip minor";
+      minor.textContent = "Under 18";
+      td.appendChild(minor);
+      return td;
+    }
     if (header === "Status" && text) {
       var chip = document.createElement("span");
-      chip.className = "chip " + text.toLowerCase();
+      chip.className = "chip " + text.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       chip.textContent = text;
       td.appendChild(chip);
       return td;
@@ -527,6 +628,12 @@
     var q = state.query.toLowerCase();
     var rows = data.rows;
     if (state.tab === "Registrations") rows = rows.slice().reverse(); // newest first
+    if (state.tab === "Students" && state.unpaid) {
+      rows = rows.filter(function (row) {
+        var bal = balanceOf(row);
+        return bal && bal.balance > 0;
+      });
+    }
     if (q) {
       rows = rows.filter(function (row) {
         for (var k in row) {
@@ -577,8 +684,18 @@
     wrap.innerHTML = "";
     wrap.appendChild(table);
 
-    el("status").textContent = (q ? rows.length + " of " + data.rows.length : data.rows.length) +
-      " rows" + (data.truncated ? " (first 500 shown)" : "");
+    el("status").textContent = (q || state.unpaid ? rows.length + " of " + data.rows.length : data.rows.length) +
+      " rows" + (data.truncated ? " (first 500 shown)" : "") + unpaidSummary();
+  }
+
+  function unpaidSummary() {
+    if (state.tab !== "Students" || !state.balances) return "";
+    var count = 0;
+    var due = 0;
+    state.balances.rows.forEach(function (r) {
+      if (r.balance > 0) { count++; due += r.balance; }
+    });
+    return count ? " · " + count + " unpaid (" + due.toLocaleString("en-US") + " DZD)" : " · everyone paid";
   }
 
   /* ---------- data ---------- */
@@ -587,6 +704,9 @@
     if (tab) {
       state.tab = tab;
       state.payStudent = null;
+      state.balances = null;
+      state.unpaid = false;
+      el("unpaid").checked = false;
       show(el("pay-form"), false);
       show(el("stu-form"), false);
       show(el("teach-form"), false);
@@ -599,6 +719,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tab[data-tab]"), function (b) {
       b.setAttribute("aria-selected", b.dataset.tab === state.tab ? "true" : "false");
     });
+    show(el("unpaid-wrap"), state.tab === "Students");
     show(el("add-new"), state.tab === "Registrations" || state.tab === "Teachers" || state.tab === "Staff");
     el("add-new").textContent = state.tab === "Teachers" ? "+ Add teacher"
       : state.tab === "Staff" ? "+ Add email" : "+ Add student";
@@ -622,6 +743,7 @@
         if (res.ok) {
           state.data = res;
           render();
+          if (state.tab === "Students") loadBalances();
           return;
         }
         if (res.error === "unauthorized") return signOut("Your session expired. Sign in again.");
@@ -658,6 +780,19 @@
       .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
   }
 
+  function loadBalances() {
+    ask({ action: "balances", idToken: state.token })
+      .then(function (res) {
+        if (state.tab !== "Students") return;
+        state.balances = res.ok ? res : null;
+        render();
+      })
+      .catch(function () {
+        // The list is still usable without the chips.
+        state.balances = null;
+      });
+  }
+
   function start(token) {
     state.token = token;
     state.email = emailFromToken(token) || "signed in";
@@ -683,6 +818,8 @@
       unauthorized: "Your session expired. Sign in again.",
       server_error: "The script hit an error. Apps Script → Executions shows the details.",
       not_found: "That row is no longer in the sheet. Press Refresh.",
+      already_approved: "This registration was already approved.",
+      invalid_status: "That status is not one the page can set.",
       owner_only: "Only the owner account can manage staff access."
     };
     if (res.error === "missing_column") {
@@ -736,6 +873,31 @@
       });
   }
 
+  function setRegStatus(select) {
+    var id = select.dataset.id;
+    var was = select.dataset.was;
+    select.disabled = true;
+    ask({ action: "regStatus", regId: id, status: select.value, idToken: state.token })
+      .then(function (res) {
+        select.disabled = false;
+        if (!res.ok) {
+          select.value = was;
+          if (res.error === "already_approved") {
+            notice("This registration was already approved. Press Refresh.", "warn");
+            return;
+          }
+          return failWrite(res);
+        }
+        notice(id + " marked " + res.status + ".", "ok");
+        load();
+      })
+      .catch(function () {
+        select.disabled = false;
+        select.value = was;
+        notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
   function openPay(btn) {
     state.payStudent = { id: btn.dataset.id, name: btn.dataset.name || "" };
     el("pay-who").textContent = (state.payStudent.name || "Student") + " — " + state.payStudent.id;
@@ -775,7 +937,7 @@
         show(el("pay-form"), false);
         state.payStudent = null;
         notice("Payment " + (res.paymentId || "") + " recorded: " + res.amount + " DZD for " + (res.studentName || "student") + " on " + res.date + ".", "ok");
-        if (state.tab === "Payments") load();
+        if (state.tab === "Payments" || state.tab === "Students") load();
         dashboard();
       })
       .catch(function () {
@@ -1337,6 +1499,16 @@
     if (state.tab === "Attendance") return;
     state.query = this.value.trim();
     render();
+  });
+
+  el("unpaid").addEventListener("change", function () {
+    state.unpaid = this.checked;
+    render();
+  });
+
+  document.addEventListener("change", function (e) {
+    var select = e.target.closest('select[data-action="regStatus"]');
+    if (select) setRegStatus(select);
   });
 })();
 </script>

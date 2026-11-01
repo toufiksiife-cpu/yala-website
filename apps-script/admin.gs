@@ -52,6 +52,8 @@ function doPost(e) {
     if (action === 'list') return json_(list_(body.tab));
     if (action === 'schema') return json_(schema_());
     if (action === 'approve') return json_(approve_(body, email));
+    if (action === 'regStatus') return json_(regStatus_(body));
+    if (action === 'balances') return json_(balances_(body));
     if (action === 'pay') return json_(pay_(body, email));
     if (action === 'sessions') return json_(sessions_());
     if (action === 'roster') return json_(roster_(body));
@@ -521,6 +523,50 @@ function approve_(body, email) {
   }
 }
 
+/* ================= REGISTRATION FOLLOW-UP ================= */
+
+// Approving is its own action; this only moves a registration that is still
+// being chased, so "we called, no answer" is recorded instead of remembered.
+var REG_STATUSES = ['Pending', 'Contacted', 'No answer', 'Rejected'];
+
+function regStatus_(body) {
+  var regId = String(body.regId || '').trim();
+  if (!regId) return { ok: false, error: 'missing_registration' };
+
+  var wanted = '';
+  var asked = String(body.status || '').trim().toLowerCase();
+  for (var s = 0; s < REG_STATUSES.length; s++) {
+    if (REG_STATUSES[s].toLowerCase() === asked) wanted = REG_STATUSES[s];
+  }
+  if (!wanted) return { ok: false, error: 'invalid_status' };
+
+  var reg = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Registrations');
+  if (!reg) return { ok: false, error: 'missing_tab', tab: 'Registrations' };
+
+  var head = headerRow_(reg);
+  var iId = colOf_(head, 'id', 'Registrations');
+  var iStatus = colOf_(head, 'status', 'Registrations');
+  if (iId === -1) return missing_('Registrations', 'RegistrationID', head);
+  if (iStatus === -1) return missing_('Registrations', 'Status', head);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    var values = reg.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][iId]).trim().toUpperCase() !== regId.toUpperCase()) continue;
+      if (/^approved$/i.test(String(values[i][iStatus]).trim())) {
+        return { ok: false, error: 'already_approved' };
+      }
+      reg.getRange(i + 1, iStatus + 1).setValue(wanted);
+      return { ok: true, regId: regId, status: wanted };
+    }
+    return { ok: false, error: 'not_found' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function findStudent_(sheet, head, name, phone, dob) {
   var iName = colOf_(head, 'name', 'Students');
   var iPhone = colOf_(head, 'phone', 'Students');
@@ -812,6 +858,123 @@ function pay_(body, email) {
   }
 
   return { ok: true, paymentId: paymentId, studentId: studentId, studentName: studentName, amount: amount, date: cellDate_(date) };
+}
+
+/* ================= MONTHLY BALANCES ================= */
+
+// One list for the Students tab: what each active student owes this month and
+// what was paid, so the front desk does not have to add up the Payments tab.
+function balances_(body) {
+  var month = dateKey_(new Date()).slice(0, 7);
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var students = ss.getSheetByName('Students');
+  if (!students) return { ok: false, error: 'missing_tab', tab: 'Students' };
+
+  var head = headerRow_(students);
+  var iId = colOf_(head, 'id', 'Students');
+  var iName = colOf_(head, 'name', 'Students');
+  var iCourses = colOf_(head, 'courses', 'Students');
+  var iStatus = colOf_(head, 'status', 'Students');
+  if (iId === -1 || iName === -1) return missing_('Students', 'StudentID/FullName', head);
+
+  var enrolled = enrollmentFees_(ss);
+  var prices = configFees_(ss);
+  var paid = paymentsInMonth_(ss, month);
+
+  var values = students.getDataRange().getValues();
+  var rows = [];
+  var totalDue = 0;
+  var totalPaid = 0;
+  for (var i = 1; i < values.length; i++) {
+    var id = String(values[i][iId] || '').trim();
+    var name = String(values[i][iName] || '').trim();
+    if (!id || !name) continue;
+    var status = iStatus === -1 ? '' : String(values[i][iStatus] || '').trim();
+    if (status && !/^active$/i.test(status)) continue;
+
+    // A real enrollment fee wins; otherwise price the student's course list.
+    var due = enrolled.hasOwnProperty(id)
+      ? enrolled[id]
+      : courseFees_(iCourses === -1 ? '' : values[i][iCourses], prices);
+    var got = paid[id] || 0;
+
+    rows.push({ studentId: id, name: name, due: due, paid: got, balance: due - got });
+    totalDue += due;
+    totalPaid += got;
+  }
+  return { ok: true, month: month, rows: rows, totalDue: totalDue, totalPaid: totalPaid };
+}
+
+// Sum of active enrollment fees per student, blank fees read as 0.
+function enrollmentFees_(ss) {
+  var out = {};
+  var sheet = ss.getSheetByName('Enrollments');
+  if (!sheet || sheet.getLastRow() < 2) return out;
+  var head = headerRow_(sheet);
+  var iSid = colOf_(head, 'studentId', 'Enrollments');
+  var iFee = colOf_(head, 'fee', 'Enrollments');
+  var iStatus = colOf_(head, 'status', 'Enrollments');
+  if (iSid === -1 || iFee === -1) return out;
+
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var id = String(values[i][iSid] || '').trim();
+    if (!id) continue;
+    var status = iStatus === -1 ? '' : String(values[i][iStatus] || '').trim();
+    if (status && !/^active$/i.test(status)) continue;
+    out[id] = (out[id] || 0) + (Number(values[i][iFee]) || 0);
+  }
+  return out;
+}
+
+function configFees_() {
+  var out = {};
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Config');
+  if (!sheet || sheet.getLastRow() < 2) return out;
+  var values = sheet.getDataRange().getValues();
+  var head = values[0].map(function (h) { return String(h).trim(); });
+  var iFull = head.indexOf('FullCourseName');
+  var iFee = head.indexOf('MonthlyFeeDZD');
+  if (iFull === -1 || iFee === -1) return out;
+  for (var i = 1; i < values.length; i++) {
+    var name = String(values[i][iFull] || '').trim().toLowerCase();
+    if (name) out[name] = Number(values[i][iFee]) || 0;
+  }
+  return out;
+}
+
+function courseFees_(cell, prices) {
+  var total = 0;
+  var seen = {};
+  var parts = String(cell === null || cell === undefined ? '' : cell).split(',');
+  for (var i = 0; i < parts.length; i++) {
+    var key = parts[i].trim().toLowerCase();
+    if (!key || seen[key]) continue;
+    seen[key] = 1;
+    total += prices[key] || 0;
+  }
+  return total;
+}
+
+function paymentsInMonth_(ss, month) {
+  var out = {};
+  var sheet = ss.getSheetByName('Payments');
+  if (!sheet || sheet.getLastRow() < 2) return out;
+  var head = headerRow_(sheet);
+  var iSid = colOf_(head, 'studentId', 'Payments');
+  var iAmount = colOf_(head, 'amount', 'Payments');
+  var iDate = colOf_(head, 'date', 'Payments');
+  if (iSid === -1 || iAmount === -1) return out;
+
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var id = String(values[i][iSid] || '').trim();
+    if (!id) continue;
+    if (iDate !== -1 && dateKey_(values[i][iDate]).slice(0, 7) !== month) continue;
+    out[id] = (out[id] || 0) + (Number(values[i][iAmount]) || 0);
+  }
+  return out;
 }
 
 /* ================= SCHEDULE & ATTENDANCE ================= */
@@ -1236,4 +1399,43 @@ function parseDate_(value) {
   if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da) return null;
   if (d > new Date()) return null;
   return d;
+}
+
+/* ================= DAILY BACKUP ================= */
+
+// Editors that run this script also grant Drive access. Keeps the last 30
+// copies in a "YALA backups" folder, so a bad edit costs one day, not the year.
+var BACKUP_FOLDER = 'YALA backups';
+var BACKUP_KEEP = 30;
+
+function backupSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var name = ss.getName() + ' backup ' +
+    Utilities.formatDate(new Date(), 'Africa/Algiers', 'yyyy-MM-dd HHmm');
+
+  var folders = DriveApp.getFoldersByName(BACKUP_FOLDER);
+  var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(BACKUP_FOLDER);
+
+  var copy = DriveApp.getFileById(SPREADSHEET_ID).makeCopy(name, folder);
+
+  var files = folder.getFiles();
+  var ours = [];
+  while (files.hasNext()) {
+    var file = files.next();
+    if (file.getName().indexOf(ss.getName() + ' backup ') === 0) ours.push(file);
+  }
+  ours.sort(function (a, b) { return b.getDateCreated().getTime() - a.getDateCreated().getTime(); });
+  for (var i = BACKUP_KEEP; i < ours.length; i++) ours[i].setTrashed(true);
+
+  return copy.getName();
+}
+
+// Run this once from the editor. Running it again replaces the trigger.
+function installBackupTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'backupSheet') ScriptApp.deleteTrigger(triggers[i]);
+  }
+  ScriptApp.newTrigger('backupSheet').timeBased().atHour(2).everyDays(1).create();
+  return 'Daily backup installed for 02:00.';
 }
