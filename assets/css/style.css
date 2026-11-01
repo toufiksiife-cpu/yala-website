@@ -151,6 +151,9 @@ a { color: var(--navy); }
 /* ---------- prose ---------- */
 .prose { max-width: 68ch; }
 .prose p { margin: 0 0 16px; }
+.prose h2 { margin: 28px 0 10px; font-size: 1.1rem; color: var(--navy); }
+.prose ul { margin: 0 0 16px; padding-inline-start: 20px; }
+.prose li { margin: 0 0 6px; }
 
 /* ---------- contact ---------- */
 .contact-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 24px 8px; }
