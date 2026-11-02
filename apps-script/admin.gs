@@ -854,10 +854,11 @@ function pay_(body, email) {
 
   var cache = CacheService.getScriptCache();
 
-  // A double-submit or a stuck button must not take the money twice. The month
-  // joins the key, so two real payments of the same size in one visit for
-  // different months both go through; a plain double-click still hits it.
-  var guard = 'pay-' + studentId + '-' + amount + '-' + String(body.month || '').slice(0, 20) +
+  // A double-submit or a stuck button must not take the money twice. The note
+  // ("October", "2nd instalment") joins the key, so a second real payment with
+  // a different note goes through; only the same payment again is refused.
+  var noteKey = String(body.note || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
+  var guard = 'pay-' + studentId + '-' + amount + '-' + noteKey +
     '-' + Utilities.formatDate(date, 'Africa/Algiers', 'yyyyMMdd');
 
   var lock = LockService.getScriptLock();
