@@ -68,6 +68,10 @@
   .pay-form legend { font-size: .82rem; font-weight: 600; padding-inline: 4px; }
   .pay-form .courses label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 14px 4px 0; font-weight: 600; }
   .pay-form .courses input { width: 17px; height: 17px; accent-color: var(--navy); }
+  .pay-form .course-picker { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; }
+  .pay-form .course-picker > div { flex: 1 1 160px; min-width: 0; }
+  .pay-form .course-picker label { display: block; margin: 0 0 2px; }
+  .pay-form .course-picker select { padding: 7px 9px; }
   #st-courses h2, #te-courses h2 { font-size: .82rem; margin: 10px 0 2px; color: var(--navy); }
   #st-courses h3, #te-courses h3 { font-size: .78rem; margin: 8px 0 2px; color: var(--muted); }
   #st-courses h4, #te-courses h4 { font-size: .74rem; margin: 6px 0 2px 14px; color: var(--muted); }
@@ -1449,6 +1453,8 @@
       .then(function (res) {
         if (!res.ok) return failWrite(res);
         box.innerHTML = "";
+
+        var sections = [];
         (res.categories || []).forEach(function (cat) {
           var shown = cat.courses.filter(function (course) { return !course.hidden; });
           if (!shown.length) return;
@@ -1457,17 +1463,20 @@
           var title = document.createElement("h2");
           title.textContent = cat.name || cat.key;
           section.appendChild(title);
+
+          var groups = [];
           groupCourses(shown).forEach(function (group) {
+            var block = document.createElement("div");
             if (group.name) {
               var sub = document.createElement("h3");
               sub.textContent = group.name;
-              section.appendChild(sub);
+              block.appendChild(sub);
             }
             group.levels.forEach(function (level) {
               if (level.name) {
                 var subsub = document.createElement("h4");
                 subsub.textContent = level.name;
-                section.appendChild(subsub);
+                block.appendChild(subsub);
               }
               level.courses.forEach(function (course) {
                 var label = document.createElement("label");
@@ -1478,15 +1487,86 @@
                 span.textContent = course.name;
                 label.appendChild(input);
                 label.appendChild(span);
-                section.appendChild(label);
+                block.appendChild(label);
               });
             });
+            section.appendChild(block);
+            if (group.name) groups.push({ name: group.name, el: block });
           });
+
           box.appendChild(section);
+          sections.push({ name: title.textContent, el: section, groups: groups });
         });
-        if (!box.textContent.trim() || !box.querySelector("input")) box.textContent = "No course in Config yet.";
+
+        if (!sections.length) {
+          box.textContent = "No course in Config yet.";
+          return;
+        }
+        coursePicker(box, sections);
       })
       .catch(function () { box.textContent = "Could not load the courses."; });
+  }
+
+  // Section and sub-section menus filter the list; ticks are kept when switching.
+  function coursePicker(box, sections) {
+    var bar = document.createElement("div");
+    bar.className = "course-picker";
+
+    var sectionBox = filterBox(box.id + "-section", "Section");
+    addOption(sectionBox.select, "", "All sections");
+    sections.forEach(function (s) { addOption(sectionBox.select, s.name, s.name); });
+    bar.appendChild(sectionBox.el);
+
+    var subBox = filterBox(box.id + "-sub", "Sub-section");
+    subBox.el.hidden = true;
+    bar.appendChild(subBox.el);
+
+    box.insertBefore(bar, box.firstChild);
+
+    var section = null;
+    function filterSub() {
+      if (!section) return;
+      var sub = subBox.select.value;
+      section.groups.forEach(function (g) { g.el.hidden = !!sub && g.name !== sub; });
+    }
+
+    sectionBox.select.addEventListener("change", function () {
+      section = null;
+      sections.forEach(function (s) {
+        if (s.name === sectionBox.select.value) section = s;
+      });
+      sections.forEach(function (s) { s.el.hidden = !!section && s !== section; });
+      sections.forEach(function (s) { s.groups.forEach(function (g) { g.el.hidden = false; }); });
+
+      subBox.select.textContent = "";
+      addOption(subBox.select, "", "All sub-sections");
+      if (section) {
+        section.groups.forEach(function (g) { addOption(subBox.select, g.name, g.name); });
+      }
+      subBox.el.hidden = !section || section.groups.length < 2;
+      filterSub();
+    });
+
+    subBox.select.addEventListener("change", filterSub);
+  }
+
+  function filterBox(id, text) {
+    var wrap = document.createElement("div");
+    var label = document.createElement("label");
+    label.textContent = text;
+    label.setAttribute("for", id);
+    var select = document.createElement("select");
+    select.id = id;
+    wrap.appendChild(label);
+    wrap.appendChild(select);
+    return { el: wrap, select: select };
+  }
+
+  function addOption(select, value, text) {
+    var option = document.createElement("option");
+    option.value = value;
+    option.textContent = text;
+    select.appendChild(option);
   }
 
   function checkedCourses(box) {

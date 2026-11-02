@@ -29,6 +29,10 @@ Same file as Phase 5/6, one paste + redeploy:
 | Courses | at least one, ticked from `Config` |
 | Notes | no |
 
+The courses box starts with a **Section** menu; after picking a section the **Sub-section**
+menu appears (only when that section has more than one). The list below shows just the
+courses that match, and anything already ticked stays ticked when you switch.
+
 Saving adds a row to `Registrations` with `Status = Pending`. Approve it from the same list — that is what creates the student and their course enrollments. Nothing becomes an Active student without that click.
 
 Blocked cases: the person is already in `Students` ("Already a student: STU-…"), or already has an unapproved registration ("Already in Registrations as REG-…"), bad phone/email/date, under 18 without parent details, unknown or missing course.
