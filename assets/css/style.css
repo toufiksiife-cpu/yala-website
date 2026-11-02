@@ -245,7 +245,7 @@ a { color: var(--navy); }
 /* ---------- decorative divider ---------- */
 .section-divider { text-align: center; margin-block: 8px; }
 .section-divider svg { max-width: 120px; height: 6px; }
-.section-divider .line-bar { stroke: var(--navy); stroke-width: 3; stroke-linecap: round; animation: hero-float 8s ease-in-out infinite; }
+.section-divider .line-bar { stroke: var(--navy); stroke-width: 3; stroke-linecap: round; }
 
 /* ---------- footer ---------- */
 .site-footer {
