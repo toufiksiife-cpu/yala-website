@@ -148,8 +148,10 @@ a { color: var(--navy); }
   background: #fff; border: 1px solid var(--line);
   border-radius: var(--radius); padding: 20px;
   transition: transform .2s ease, box-shadow .2s ease;
+  display: flex; flex-direction: column;
 }
 .card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(30,69,111,.08); }
+.card .accent { width: 34px; height: 3px; border-radius: 2px; background: var(--green); margin-block-end: 14px; flex-shrink: 0; }
 .card h3 { margin: 0 0 6px; font-size: 1.25rem; color: var(--navy-dark); }
 .card p { margin: 0; color: var(--muted); font-size: .95rem; }
 .card .accent {
