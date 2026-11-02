@@ -23,7 +23,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 16px/1.65 system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
+  font: 16px/1.65 "Cairo", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
 img { max-width: 100%; height: auto; display: block; }
@@ -122,6 +122,31 @@ a { color: var(--navy); }
   font-size: 1.05rem; color: #E4ECF5;
 }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-art { margin-block-start: 28px; }
+.hero-art img { border-radius: var(--radius); opacity: .92; }
+
+/* ---------- animation ---------- */
+@keyframes hero-rotate-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes hero-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+.hero-art svg circle[fill="#1E456F"],
+.hero-art svg circle[stroke="#1E456F"] { animation: hero-rotate-slow 60s linear infinite; }
+.hero-art svg path[stroke="#7CB73E"],
+.hero-art svg path[stroke="#2D9D97"] { animation: hero-float 12s ease-in-out infinite; }
+.hero-art svg circle[fill="#F18225"] { animation: hero-pulse 6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-art svg * { animation: none !important; }
+}
 
 /* ---------- sections ---------- */
 .section { padding-block: 52px; }
@@ -134,14 +159,19 @@ a { color: var(--navy); }
 .section .section-note { margin: 0 0 28px; color: var(--muted); }
 
 .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
-@media (min-width: 620px) { .grid.cols-2, .grid.cols-3 { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 620px) and (max-width: 899px) {
+  .grid.cols-2, .grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 > :last-child { grid-column: 1 / -1; }
+}
 @media (min-width: 900px) { .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
 
 .card {
   background: #fff; border: 1px solid var(--line);
   border-radius: var(--radius); padding: 20px;
+  transition: transform .2s ease, box-shadow .2s ease;
 }
-.card h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--navy); }
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(30,69,111,.08); }
+.card h3 { margin: 0 0 6px; font-size: 1.25rem; color: var(--navy-dark); }
 .card p { margin: 0; color: var(--muted); font-size: .95rem; }
 .card .accent {
   width: 34px; height: 3px; border-radius: 2px;
@@ -189,14 +219,14 @@ a { color: var(--navy); }
 @media (min-width: 620px) { .field-row.cols-2 { grid-template-columns: 1fr 1fr; } }
 
 .fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-block-end: 18px; }
-.fieldset legend { font-weight: 700; padding-inline: 8px; }
+.fieldset legend { font-size: 1.1rem; font-weight: 700; color: var(--navy-dark); padding-inline: 8px; margin-block-end: 6px; }
 .choice { display: flex; align-items: flex-start; gap: 10px; padding-block: 7px; }
 .choice input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--navy); }
 .choice label { font-weight: 400; }
-.course-group { margin-block-start: 10px; }
-.course-group h2 { font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 4px; }
-.course-group h3 { font-size: .82rem; color: var(--navy); margin: 10px 0 2px; }
-.course-group h4 { font-size: .78rem; font-weight: 600; color: var(--muted); margin: 6px 0 2px 14px; }
+.course-group { margin-block-start: 8px; }
+.course-group h2 { font-size: 1.2rem; font-weight: 700; color: var(--navy-dark); margin: 18px 0 6px; }
+.course-group h3 { font-size: 1.1rem; font-weight: 600; color: var(--navy); margin: 14px 0 4px; }
+.course-group h4 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 10px 0 4px 14px; }
 
 .form-error {
   border-inline-start: 4px solid #B42318; background: #FEF3F2; color: #7A271A;
@@ -211,6 +241,11 @@ a { color: var(--navy); }
 .success-box { border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; background: var(--bg-soft); }
 .success-box h2 { margin-block-start: 0; color: var(--navy); }
 .success-box .id { font-weight: 700; font-size: 1.2rem; color: var(--navy); }
+
+/* ---------- decorative divider ---------- */
+.section-divider { text-align: center; margin-block: 8px; }
+.section-divider svg { max-width: 120px; height: 6px; }
+.section-divider .line-bar { stroke: var(--navy); stroke-width: 3; stroke-linecap: round; animation: hero-float 8s ease-in-out infinite; }
 
 /* ---------- footer ---------- */
 .site-footer {
