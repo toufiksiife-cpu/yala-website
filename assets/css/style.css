@@ -123,6 +123,10 @@ a { color: var(--navy); }
   font-size: 1.05rem; color: #E4ECF5;
 }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero { overflow: hidden; }
+.hero-art { margin-block-start: 28px; }
+.hero-art img { border-radius: var(--radius); }
+
 /* ---------- sections ---------- */
 .section { padding-block: 52px; }
 .section-soft { background: var(--bg-soft); }
