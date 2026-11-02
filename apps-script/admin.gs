@@ -852,9 +852,13 @@ function pay_(body, email) {
 
   var date = parseDate_(body.date) || new Date();
 
-  // A double-submit or a stuck button must not take the money twice.
   var cache = CacheService.getScriptCache();
-  var guard = 'pay-' + studentId + '-' + amount + '-' + Utilities.formatDate(date, 'Africa/Algiers', 'yyyyMMdd');
+
+  // A double-submit or a stuck button must not take the money twice. The month
+  // joins the key, so two real payments of the same size in one visit for
+  // different months both go through; a plain double-click still hits it.
+  var guard = 'pay-' + studentId + '-' + amount + '-' + String(body.month || '').slice(0, 20) +
+    '-' + Utilities.formatDate(date, 'Africa/Algiers', 'yyyyMMdd');
 
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
@@ -1240,6 +1244,16 @@ function numberOrNull_(value) {
 // One save for the whole screen: rename, reorder, reprice, hide, and move
 // courses between sub-sections and levels.
 function saveCatalog_(body) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    return saveCatalogLocked_(body);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function saveCatalogLocked_(body) {
   var sheet = configSheet_();
   var head = ensureCatalog_(sheet);
   var iCat = colAny_(head, ['category']);
@@ -1352,6 +1366,16 @@ function saveCatalog_(body) {
 // A new course gets a readable permanent key that follows the tree:
 // "Section - Sub-section - Level - Name".
 function addCourse_(body) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    return addCourseLocked_(body);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function addCourseLocked_(body) {
   var sheet = configSheet_();
   var head = ensureCatalog_(sheet);
   var iCat = colAny_(head, ['category']);

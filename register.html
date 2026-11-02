@@ -268,14 +268,6 @@
   });
 
   /* ---- courses loaded from the sheet ---- */
-  var AR_CATEGORY = {
-    "Primary School Support": "الدعم المدرسي — الابتدائي",
-    "Middle School Support": "الدعم المدرسي — المتوسط",
-    "High School Support": "الدعم المدرسي — الثانوي",
-    "Kids Language Courses": "دورات اللغات للأطفال",
-    "Adult Language Courses": "دورات اللغات للكبار",
-    "Other Formation Courses": "دورات تكوينية أخرى"
-  };
 
   fetch(window.YALA_API + "?action=courses")
     .then(function (r) { return r.json(); })
@@ -287,7 +279,7 @@
         var section = document.createElement("div");
         section.className = "course-group";
         var h = document.createElement("h2");
-        h.textContent = isAR ? (cat.ar || AR_CATEGORY[cat.key] || cat.key) : cat.key;
+        h.textContent = isAR ? (cat.ar || cat.key) : cat.key;
         section.appendChild(h);
         (cat.groups || []).forEach(function (group) {
           if (group.name) {

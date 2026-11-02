@@ -111,14 +111,6 @@
     ? { error: "تعذّر تحميل الدورات حالياً.", retry: "راسلنا على واتساب", loading: "جارٍ تحميل الدورات…", room: "قاعة", count: function (n) { return n + " دورة"; } }
     : { error: "Courses could not be loaded right now.", retry: "Message us on WhatsApp", loading: "Loading courses…", room: "Room", count: function (n) { return n + (n === 1 ? " course" : " courses"); } };
 
-  var AR_CATEGORY = {
-    "Primary School Support": "الدعم المدرسي — الابتدائي",
-    "Middle School Support": "الدعم المدرسي — المتوسط",
-    "High School Support": "الدعم المدرسي — الثانوي",
-    "Kids Language Courses": "دورات اللغات للأطفال",
-    "Adult Language Courses": "دورات اللغات للكبار",
-    "Other Formation Courses": "دورات تكوينية أخرى"
-  };
 
   var box = document.getElementById("catalog");
 
@@ -140,7 +132,7 @@
       var section = document.createElement("div");
       section.className = "cat-block";
 
-      section.appendChild(title("h2", isAR ? (cat.ar || AR_CATEGORY[cat.key] || cat.key) : cat.key));
+      section.appendChild(title("h2", isAR ? (cat.ar || cat.key) : cat.key));
 
       var total = 0;
       cat.groups.forEach(function (group) {

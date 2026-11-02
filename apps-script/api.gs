@@ -232,39 +232,47 @@ function register_(data) {
 
   if (cache.get('reg-' + phone + '-' + hash_(name))) return { ok: false, error: 'too_many' };
 
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Registrations');
-  if (!sheet) return { ok: false, error: 'server_error' };
-  var col = columns_(sheet);
+  // The duplicate check reads the sheet, so it must not run beside itself:
+  // a fast double-click would pass the check twice and add two rows.
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'too_many' };
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Registrations');
+    if (!sheet) return { ok: false, error: 'server_error' };
+    var col = columns_(sheet);
 
-  for (var h = 0; h < REGISTRATION_HEADERS.length; h++) {
-    if (col[REGISTRATION_HEADERS[h]] === undefined) return { ok: false, error: 'server_error' };
+    for (var h = 0; h < REGISTRATION_HEADERS.length; h++) {
+      if (col[REGISTRATION_HEADERS[h]] === undefined) return { ok: false, error: 'server_error' };
+    }
+
+    if (isDuplicate_(sheet, col, name, phone, dob)) return { ok: false, error: 'duplicate' };
+
+    var row = [];
+    for (var x = 0; x < sheet.getLastColumn(); x++) row.push('');
+    row[col['RegistrationID']] = nextId_(sheet, col['RegistrationID'], 'REG');
+    row[col['FullName']] = name;
+    row[col['DOB']] = dob;
+    row[col['Age']] = age;
+    row[col['Phone']] = phone;
+    row[col['Email']] = email;
+    row[col['WhatsApp']] = phone;
+    row[col['Courses']] = chosen.join(', ');
+    row[col['Under18']] = under18 ? 'YES' : 'NO';
+    row[col['ParentName']] = under18 ? parentName : '';
+    row[col['ParentPhone']] = under18 ? parentPhone : '';
+    row[col['ParentRelation']] = under18 ? parentRelation : '';
+    row[col['Notes']] = notes;
+    row[col['SubmittedAt']] = new Date();
+    row[col['Status']] = 'Pending';
+    sheet.appendRow(row);
+
+    cache.put('reg-' + phone + '-' + hash_(name), '1', 600);
+    cache.put(hourKey, String(sentThisHour + 1), 3600);
+
+    return { ok: true, id: row[col['RegistrationID']], under18: under18 };
+  } finally {
+    lock.releaseLock();
   }
-
-  if (isDuplicate_(sheet, col, name, phone, dob)) return { ok: false, error: 'duplicate' };
-
-  var row = [];
-  for (var x = 0; x < sheet.getLastColumn(); x++) row.push('');
-  row[col['RegistrationID']] = nextId_(sheet, col['RegistrationID'], 'REG');
-  row[col['FullName']] = name;
-  row[col['DOB']] = dob;
-  row[col['Age']] = age;
-  row[col['Phone']] = phone;
-  row[col['Email']] = email;
-  row[col['WhatsApp']] = phone;
-  row[col['Courses']] = chosen.join(', ');
-  row[col['Under18']] = under18 ? 'YES' : 'NO';
-  row[col['ParentName']] = under18 ? parentName : '';
-  row[col['ParentPhone']] = under18 ? parentPhone : '';
-  row[col['ParentRelation']] = under18 ? parentRelation : '';
-  row[col['Notes']] = notes;
-  row[col['SubmittedAt']] = new Date();
-  row[col['Status']] = 'Pending';
-  sheet.appendRow(row);
-
-  cache.put('reg-' + phone + '-' + hash_(name), '1', 600);
-  cache.put(hourKey, String(sentThisHour + 1), 3600);
-
-  return { ok: true, id: row[col['RegistrationID']], under18: under18 };
 }
 
 function courseNames_() {
