@@ -98,14 +98,15 @@
   .att-choice input { width: 18px; height: 18px; accent-color: var(--navy); }
   .att-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px; }
 
-  /* Weekly timetable: one column per day, stacking to 2 columns on phones. */
-  .att-week { display: grid; grid-template-columns: repeat(7, minmax(108px, 1fr)); gap: 6px; margin-block: 6px 12px; }
-  .att-day { background: #F7FAFF; border: 1px solid var(--navy); border-radius: var(--radius); padding: 8px; min-width: 0; }
-  .att-day h3 { font-size: .78rem; margin: 0 0 6px; text-transform: uppercase; letter-spacing: .05em; }
-  .att-day p { font-size: .78rem; margin: 0 0 6px; line-height: 1.4; }
-  .att-day .none { color: #8795A8; }
-  .att-day .sess { display: block; width: 100%; text-align: start; border: 0; background: none; padding: 0; margin: 0 0 6px; font: inherit; font-size: .78rem; line-height: 1.4; color: inherit; cursor: pointer; }
-  .att-day .sess:hover { text-decoration: underline; color: var(--navy); }
+  /* Weekly timetable: navy day headers, colored class cards; 2 columns on phones. */
+  .att-week { display: grid; grid-template-columns: repeat(7, minmax(112px, 1fr)); gap: 8px; margin-block: 6px 14px; }
+  .att-day { background: #fff; border: 1px solid #C7D0DC; border-radius: var(--radius); min-width: 0; overflow: hidden; }
+  .att-day h3 { margin: 0; padding: 7px 4px; background: var(--navy); color: #fff; font-size: .78rem; text-align: center; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+  .att-day .body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .att-day .none { color: #8795A8; text-align: center; margin: 4px 0; font-size: .78rem; }
+  .att-day .sess { display: block; width: 100%; text-align: start; border: 0; border-radius: 8px; padding: 7px 9px; font: inherit; font-size: .78rem; line-height: 1.35; cursor: pointer; }
+  .att-day .sess b { display: block; margin-block-end: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .att-day .sess:hover, .att-day .sess:focus { outline: 2px solid var(--navy); }
   @media (max-width: 900px) { .att-week { grid-template-columns: repeat(2, 1fr); } }
   #att-empty { margin-block: 0 12px; }
 
@@ -1839,6 +1840,17 @@
   }
 
   // The weekly plan the front desk reads at a glance; a click preselects the class above.
+  // Each course keeps one steady colour (picked from a soft palette by name hash).
+  var COURSE_COLORS = [
+    ["#EAF2FF", "#1D3557"], ["#FFF4E5", "#7C4A05"], ["#E9F9EF", "#14532D"],
+    ["#FCEBEC", "#7A1E25"], ["#F3EFFF", "#4527A0"], ["#FEF3D8", "#6B4E00"]
+  ];
+  function courseColor(course) {
+    var hash = 0;
+    String(course).split("").forEach(function (ch) { hash += ch.charCodeAt(0); });
+    return COURSE_COLORS[hash % COURSE_COLORS.length];
+  }
+
   function renderWeek() {
     var week = el("att-week");
     week.innerHTML = "";
@@ -1848,22 +1860,34 @@
       var h = document.createElement("h3");
       h.textContent = day;
       cell.appendChild(h);
+
+      var body = document.createElement("div");
+      body.className = "body";
+      cell.appendChild(body);
+
       var ones = sortedSessions().filter(function (s) { return s.day === day; });
       if (!ones.length) {
         var none = document.createElement("p");
         none.className = "none";
         none.textContent = "—";
-        cell.appendChild(none);
+        body.appendChild(none);
       }
       ones.forEach(function (s) {
+        var colors = courseColor(s.course);
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "sess";
         btn.dataset.sid = s.sessionId;
-        btn.textContent = s.start + " – " + s.end + " · " + s.course;
-        if (s.teacher) btn.textContent += " · " + s.teacher;
-        if (s.room) btn.textContent += " · " + s.room;
-        cell.appendChild(btn);
+        btn.style.background = colors[0];
+        btn.style.color = colors[1];
+        var t = document.createElement("b");
+        t.textContent = s.start + " – " + s.end;
+        btn.appendChild(t);
+        var line = s.course;
+        if (s.teacher) line += " · " + s.teacher;
+        if (s.room) line += " · " + s.room;
+        btn.appendChild(document.createTextNode(line));
+        body.appendChild(btn);
       });
       week.appendChild(cell);
     });
