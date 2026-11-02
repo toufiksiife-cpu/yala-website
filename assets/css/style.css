@@ -102,11 +102,14 @@ a { color: var(--navy); }
 
 /* ---------- hero ---------- */
 .hero {
-  background: var(--navy);
+  background: linear-gradient(170deg, var(--navy) 0%, #16334F 60%, rgba(30,69,111,.7) 100%);
   color: #fff;
-  padding-block: 64px 72px;
+  padding-block: 72px 80px;
   overflow: hidden;
+  position: relative;
 }
+.hero .wrap { position: relative; z-index: 2; }
+.hero-art img { opacity: .92; }
 .hero .kicker {
   display: inline-block; margin: 0 0 14px;
   font-size: .85rem; letter-spacing: .04em;
@@ -126,6 +129,28 @@ a { color: var(--navy); }
 .hero { overflow: hidden; }
 .hero-art { margin-block-start: 28px; }
 .hero-art img { border-radius: var(--radius); }
+
+/* ---------- hero animation (single orchestrated reveal) ---------- */
+.hero .kicker,
+.hero h1,
+.hero p.lead,
+.hero .hero-actions {
+  animation: hero-reveal 1s ease-out both;
+  animation-delay: .15s;
+  opacity: 0;
+}
+.hero h1 { animation-delay: .35s; }
+.hero p.lead { animation-delay: .55s; }
+.hero .hero-actions { animation-delay: .75s; }
+@keyframes hero-reveal {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero .kicker, .hero h1, .hero p.lead, .hero .hero-actions {
+    animation: none; opacity: 1; transform: none;
+  }
+}
 
 /* ---------- sections ---------- */
 .section { padding-block: 52px; }
