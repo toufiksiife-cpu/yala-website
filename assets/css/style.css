@@ -128,7 +128,7 @@ a { color: var(--navy); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .hero { overflow: hidden; }
 .hero-art { margin-block-start: 28px; }
-.hero-art img { border-radius: var(--radius); }
+.hero-art img { border-radius: var(--radius); max-width: 720px; width: 100%; height: auto; display: block; margin-inline: auto; }
 
 /* ---------- hero animation (single orchestrated reveal) ---------- */
 .hero .kicker,
