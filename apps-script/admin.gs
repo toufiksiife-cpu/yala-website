@@ -1183,6 +1183,7 @@ function catalog_() {
   var iRoom = colAny_(head, ['room']);
   var iSub = colAny_(head, ['subcategory']);
   var iLevel = colAny_(head, ['subsubcategory']);
+  var iTeacher = colAny_(head, ['teacher']);
   if (iName === -1) return missing_('Config', 'CourseName', head);
   if (iFull === -1) return missing_('Config', 'FullCourseName', head);
   if (iFee === -1) return missing_('Config', 'MonthlyFeeDZD', head);
@@ -1223,6 +1224,7 @@ function catalog_() {
       levelAr: iLevelAr !== -1 ? String(row[iLevelAr] || '').trim() : '',
       fee: Number(row[iFee]) || 0,
       room: String(row[iRoom] || '').trim(),
+      teacher: iTeacher === -1 ? '' : String(row[iTeacher] || '').trim(),
       hidden: iHidden !== -1 && /^y/i.test(String(row[iHidden] || '').trim()),
       order: numberOrNull_(row[iSort])
     });
@@ -1278,6 +1280,13 @@ function saveCatalogLocked_(body) {
   var iRoom = colAny_(head, ['room']);
   var iSub = colAny_(head, ['subcategory']);
   var iLevel = colAny_(head, ['subsubcategory']);
+  // First save creates the Teacher column; old rows simply have blanks.
+  var iTeacher = colAny_(head, ['teacher']);
+  if (iTeacher === -1) {
+    iTeacher = head.length;
+    sheet.getRange(1, iTeacher + 1).setValue('Teacher');
+    head.push('Teacher');
+  }
   if (iCat === -1) return missing_('Config', 'Category', head);
   if (iName === -1) return missing_('Config', 'CourseName', head);
   if (iFull === -1) return missing_('Config', 'FullCourseName', head);
@@ -1352,6 +1361,7 @@ function saveCatalogLocked_(body) {
     put(iName, courseRow, clean_(courses[c].name, 80));
     put(iFee, courseRow, money_(courses[c].fee));
     put(iRoom, courseRow, clean_(courses[c].room, 40));
+    put(iTeacher, courseRow, clean_(courses[c].teacher, 60));
     put(iSub, courseRow, clean_(courses[c].subject, 80));
     put(iLevel, courseRow, clean_(courses[c].level, 80));
     put(columns.subArabic, courseRow, clean_(courses[c].subjectAr, 80));
@@ -1400,6 +1410,7 @@ function addCourseLocked_(body) {
   var iRoom = colAny_(head, ['room']);
   var iSub = colAny_(head, ['subcategory']);
   var iLevel = colAny_(head, ['subsubcategory']);
+  var iTeacher = colAny_(head, ['teacher']);
   if (iCat === -1) return missing_('Config', 'Category', head);
   if (iName === -1) return missing_('Config', 'CourseName', head);
   if (iFull === -1) return missing_('Config', 'FullCourseName', head);
@@ -1439,6 +1450,7 @@ function addCourseLocked_(body) {
   row[iFull] = full;
   row[iFee] = fee;
   row[iRoom] = clean_(body.room, 40);
+  if (iTeacher !== -1) row[iTeacher] = clean_(body.teacher, 60);
   row[iSort] = maxSort + 1;
   sheet.appendRow(row);
   return { ok: true, row: sheet.getLastRow(), full: full };

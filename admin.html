@@ -121,7 +121,7 @@
   .sub-block { margin-block-start: 14px; padding-block-start: 10px; border-block-start: 1px dashed #D8DEE7; }
   .sub-head .key, .level-head .key { font-weight: 600; color: var(--ink); font-size: .82rem; }
   .level-block { margin-block-start: 10px; margin-inline-start: 14px; padding-inline-start: 12px; border-inline-start: 2px solid var(--line); }
-  .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
+  .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
   .course-row input[type="text"], .course-row input[type="number"] { width: 100%; padding: 7px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
   .course-row .hide { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
   .course-row .moves { display: flex; gap: 4px; }
@@ -1131,6 +1131,15 @@
     room.addEventListener("input", function () { course.room = this.value; });
     row.appendChild(room);
 
+    var teacher = document.createElement("input");
+    teacher.type = "text";
+    teacher.maxLength = 60;
+    teacher.value = course.teacher || "";
+    teacher.placeholder = "Teacher";
+    teacher.setAttribute("aria-label", "Teacher of this course");
+    teacher.addEventListener("input", function () { course.teacher = this.value; });
+    row.appendChild(teacher);
+
     var hide = document.createElement("label");
     hide.className = "hide";
     var check = document.createElement("input");
@@ -1184,6 +1193,7 @@
       cat.courses.forEach(function (course, i) {
         courses.push({
           row: course.row, name: course.name, fee: course.fee, room: course.room,
+          teacher: course.teacher || "",
           subject: course.subject || "", level: course.level || "",
           subjectAr: course.subjectAr || "", levelAr: course.levelAr || "",
           hidden: !!course.hidden, order: i + 1

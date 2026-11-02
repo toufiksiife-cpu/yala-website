@@ -132,6 +132,7 @@ run("save renames a section and moves a course", () => {
         subject: moved ? "First year" : c.subject,
         level: moved ? "Mathematics advanced" : c.level,
         subjectAr: c.subjectAr, levelAr: moved ? "الرياضيات المتقدمة" : c.levelAr,
+        teacher: moved ? "Mr. Karim" : (c.teacher || ""),
         hidden: c.hidden, order: i + 1
       });
     });
@@ -155,6 +156,8 @@ run("save renames a section and moves a course", () => {
     movedLevel: moved[col("SubSubCategory")],
     movedLevelAr: moved[col("SubSubCategoryArabic")],
     movedFull: moved[col("FullCourseName")],
+    teacherColumn: rows[0].indexOf("Teacher"),
+    movedTeacher: moved[rows[0].indexOf("Teacher")],
     primaryCategories,
     arabic: moved[col("CategoryArabic")]
   };
@@ -223,7 +226,8 @@ expect("save renames + moves", typeof saved === "object" && saved.res.ok === tru
   saved.movedLevelAr === "الرياضيات المتقدمة" &&
   saved.movedFull === "Primary School Support - First year - Mathematics - First year primary mathematics" &&
   saved.primaryCategories.join("|") === "Primary Support|Primary Support|Primary Support" &&
-  saved.arabic === "دعم مدرسي — الابتدائي!", saved);
+  saved.arabic === "دعم مدرسي — الابتدائي!" &&
+  saved.teacherColumn !== -1 && saved.movedTeacher === "Mr. Karim", saved);
 
 const dupCat = results["save rejects duplicate section names"];
 expect("duplicate section rejected", typeof dupCat === "object" && dupCat.res.ok === false &&
