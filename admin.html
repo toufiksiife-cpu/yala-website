@@ -179,6 +179,14 @@
           <input id="pay-date" type="date" required>
         </div>
         <div>
+          <label for="pay-month">Month paid for</label>
+          <input id="pay-month" type="month">
+        </div>
+        <div>
+          <label for="pay-course">Course (optional)</label>
+          <select id="pay-course"><option value="">—</option></select>
+        </div>
+        <div>
           <label for="pay-method">Method</label>
           <select id="pay-method">
             <option value="Cash">Cash</option>
@@ -620,8 +628,18 @@
     name = rowValue(row, /^fullname$/i);
     btn.dataset.id = id;
     btn.dataset.name = name || "";
+    // Payment popup offers only the courses the student is actually in.
+    btn.dataset.courses = rowValue(row, /^courses$/i) || "";
     td.appendChild(btn);
     return td;
+  }
+
+  // IDs are internal handles: approve, pay and isolation use them behind the
+  // scenes, so the tables stay clean without losing the buttons.
+  function dataColumns() {
+    return state.data.headers.filter(function (h) {
+      return !/^(RegistrationID|StudentID|PaymentID)$/i.test(String(h).trim());
+    });
   }
 
   function balanceOf(row) {
@@ -717,7 +735,7 @@
       });
     }
     // Columns that are empty for every row are noise: drop them.
-    var headers = data.headers.filter(function (h) {
+    var headers = dataColumns().filter(function (h) {
       return data.rows.some(function (r) { return String(r[h] === undefined ? "" : r[h]) !== ""; });
     });
 
@@ -1269,6 +1287,7 @@
       not_found: "That row is no longer in the sheet. Press Refresh.",
       already_approved: "This registration was already approved.",
       invalid_status: "That status is not one the page can set.",
+      unknown_course: "That course is not one of the student's courses. Pick one from the list or leave it empty.",
       owner_only: "Only the owner account can manage staff access."
     };
     if (res.error === "missing_column") {
@@ -1349,10 +1368,25 @@
 
   function openPay(btn) {
     state.payStudent = { id: btn.dataset.id, name: btn.dataset.name || "" };
-    el("pay-who").textContent = (state.payStudent.name || "Student") + " — " + state.payStudent.id;
+    el("pay-who").textContent = (state.payStudent.name || "Student");
     el("pay-amount").value = "";
     el("pay-date").value = todayISO();
+    el("pay-month").value = todayISO().slice(0, 7);
     el("pay-note").value = "";
+    var select = el("pay-course");
+    select.innerHTML = "";
+    var blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "—";
+    select.appendChild(blank);
+    String(btn.dataset.courses || "").split(",").forEach(function (course) {
+      course = course.trim();
+      if (!course) return;
+      var option = document.createElement("option");
+      option.value = course;
+      option.textContent = course;
+      select.appendChild(option);
+    });
     show(el("pay-form"), true);
     el("pay-form").scrollIntoView({ block: "center", behavior: "smooth" });
     el("pay-amount").focus();
@@ -1372,6 +1406,8 @@
       studentId: state.payStudent.id,
       amount: amount,
       date: el("pay-date").value,
+      month: el("pay-month").value,
+      course: el("pay-course").value,
       method: el("pay-method").value,
       note: el("pay-note").value,
       idToken: state.token
@@ -1385,7 +1421,9 @@
         }
         show(el("pay-form"), false);
         state.payStudent = null;
-        notice("Payment " + (res.paymentId || "") + " recorded: " + res.amount + " DZD for " + (res.studentName || "student") + " on " + res.date + ".", "ok");
+        notice("Payment " + (res.paymentId || "") + " recorded: " + res.amount + " DZD for " + (res.studentName || "student") +
+          (res.month ? " (" + res.month.slice(5) + "/" + res.month.slice(0, 4) : "") +
+          (res.course ? " · " + res.course : "") + ").", "ok");
         if (state.tab === "Payments" || state.tab === "Students") load();
         dashboard();
       })

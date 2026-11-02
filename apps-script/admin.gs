@@ -347,6 +347,7 @@ var FIELDS = {
     date: ['date', 'paymentdate', 'paidat', 'paidon'],
     method: ['method', 'paymentmethod', 'mode'],
     month: ['month', 'period', 'formonth'],
+    course: ['course', 'forcourse'],
     note: ['note', 'notes', 'comment'],
     by: ['recordedby', 'receivedby', 'staff', 'createdby'],
     at: ['recordedat', 'createdat', 'timestamp', 'created']
@@ -834,31 +835,42 @@ function pay_(body, email) {
   if (iSid === -1) return missing_('Students', 'StudentID', stuHead);
 
   var studentName = '';
-  var found = false;
+  var studentRow = null;
   var values = students.getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][iSid]).trim() === studentId) {
       studentName = iName === -1 ? '' : String(values[i][iName] || '').trim();
-      found = true;
+      studentRow = values[i];
       break;
     }
   }
-  if (!found) return { ok: false, error: 'not_found' };
+  if (!studentRow) return { ok: false, error: 'not_found' };
 
   var payments = ss.getSheetByName('Payments');
   if (!payments) return { ok: false, error: 'missing_tab', tab: 'Payments' };
   var payHead = headerRow_(payments);
   if (colOf_(payHead, 'amount', 'Payments') === -1) return missing_('Payments', 'Amount', payHead);
+  // The month paid for and the course join here; old rows simply have blanks.
+  ensureColumn_(payments, payHead, 'month', 'Month', 'Payments');
+  ensureColumn_(payments, payHead, 'course', 'Course', 'Payments');
 
   var date = parseDate_(body.date) || new Date();
+  var course = clean_(body.course, 80);
+  if (course) {
+    var iStuCourses = colOf_(stuHead, 'courses', 'Students');
+    if (iStuCourses !== -1 && !hasCourse_(String(studentRow[iStuCourses] || ''), course)) {
+      return { ok: false, error: 'unknown_course' };
+    }
+  }
 
   var cache = CacheService.getScriptCache();
 
-  // A double-submit or a stuck button must not take the money twice. The note
-  // ("October", "2nd instalment") joins the key, so a second real payment with
-  // a different note goes through; only the same payment again is refused.
+  // A double-submit or a stuck button must not take the money twice. The month
+  // paid for and the note join the key, so a second real payment for another
+  // month (or with another note) goes through; only the same payment is refused.
+  var monthKey = clean_(body.month, 20).toLowerCase();
   var noteKey = String(body.note || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
-  var guard = 'pay-' + studentId + '-' + amount + '-' + noteKey +
+  var guard = 'pay-' + studentId + '-' + amount + '-' + monthKey + '-' + noteKey +
     '-' + Utilities.formatDate(date, 'Africa/Algiers', 'yyyyMMdd');
 
   var lock = LockService.getScriptLock();
@@ -873,7 +885,8 @@ function pay_(body, email) {
       ['amount', amount],
       ['date', date],
       ['method', String(body.method || '').trim().slice(0, 30)],
-      ['month', String(body.month || '').trim().slice(0, 20)],
+      ['month', clean_(body.month, 20)],
+      ['course', course],
       ['note', String(body.note || '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, 200)],
       ['by', email],
       ['at', new Date()]
@@ -883,7 +896,8 @@ function pay_(body, email) {
     lock.releaseLock();
   }
 
-  return { ok: true, paymentId: paymentId, studentId: studentId, studentName: studentName, amount: amount, date: cellDate_(date) };
+  return { ok: true, paymentId: paymentId, studentId: studentId, studentName: studentName, amount: amount, date: cellDate_(date),
+    month: clean_(body.month, 20), course: course };
 }
 
 /* ================= MONTHLY BALANCES ================= */
@@ -1709,8 +1723,8 @@ function put_(sheet, tab, pairs, prefix) {
   return iId === -1 ? '' : row[iId];
 }
 
-function ensureColumn_(sheet, head, field, title) {
-  var i = colOf_(head, field, 'Registrations');
+function ensureColumn_(sheet, head, field, title, tab) {
+  var i = colOf_(head, field, tab || 'Registrations');
   if (i !== -1) return i;
   i = head.length;
   sheet.getRange(1, i + 1).setValue(title);

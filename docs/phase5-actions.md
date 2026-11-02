@@ -5,7 +5,7 @@ The staff page can now change the spreadsheet. Two buttons, both behind the same
 | Where | Button | What it writes |
 |---|---|---|
 | Registrations | **Approve** | New row in `Students`, one row per course in `Enrollments`, then `Status = Approved` + `ApprovedBy` + `ApprovedAt` on the registration |
-| Students | **Payment** | New row in `Payments` (amount, date, method, note, who recorded it) |
+| Students | **Payment** | New row in `Payments` (amount, date, month paid for, course, method, note, who recorded it) |
 | Any tab | **Check spreadsheet** | Reads only. Shows the exact column names found and anything missing |
 
 Nothing is ever deleted or overwritten except the registration's own `Status` / `ApprovedBy` / `ApprovedAt` cells.
@@ -25,7 +25,8 @@ The browser talks to the `YALA ADMIN` Apps Script project. It is still running t
 
 ## What the guards do
 
-- **Double click / stuck button** — the registration is checked again inside a lock, so one click can never create two students. A payment with the same student, amount and date within two minutes is refused as a duplicate.
+- **Double click / stuck button** — the registration is checked again inside a lock, so one click can never create two students. A payment with the same student, amount, *month paid for*, note and day within two minutes is refused as a duplicate; the same amount for a different month or note goes through normally.
+- **Month paid for and course** — a payment records which month it was for (prefilled with the current month) and which course (chosen from the student's own courses). Old payment rows keep blank Month/Course. The ID columns (RegistrationID, StudentID, PaymentID) are hidden on screen but still drive the buttons.
 - **Same child twice** — a student is a duplicate when the name matches **and** the phone *or* the date of birth matches. Siblings sharing a phone are fine. Approving a duplicate writes nothing and tells you which `STU-` already exists.
 - **Renamed or missing column** — the write stops before touching a row and reports the columns it did find.
 - **No `Enrollments` tab** — approving still creates the student, with a visible warning that the courses were not recorded.

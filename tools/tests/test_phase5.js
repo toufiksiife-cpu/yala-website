@@ -210,6 +210,16 @@ run("pay invalid date falls back to today", () => {
   return { ok: res.ok, date: res.date };
 });
 
+run("pay with month course and unknown course", () => {
+  const f = fixture();
+  f.tabs.Students.appendRow(["STU-0007", "Nada Idir", "", "", "", "", "", "", "", "", "English A1", "Active", ""]);
+  const ok = f.call({ action: "pay", studentId: "STU-0007", amount: 2500, date: "2026-10-30", month: "2026-10", course: "English A1", note: "October" });
+  const bad = f.call({ action: "pay", studentId: "STU-0007", amount: 2500, date: "2026-10-30", month: "2026-10", course: "Physics 99" });
+  const sameAgain = f.call({ action: "pay", studentId: "STU-0007", amount: 2500, date: "2026-10-30", month: "2026-10", course: "English A1", note: "October" });
+  const otherMonth = f.call({ action: "pay", studentId: "STU-0007", amount: 2500, date: "2026-10-30", month: "2026-11", course: "English A1", note: "November" });
+  return { ok, bad, sameAgain, otherMonth, rows: found(f.tabs.Payments) };
+});
+
 // --- schema ---
 run("schema healthy", () => {
   const f = fixture();
@@ -263,6 +273,14 @@ expect("unknown student", r["pay unknown student"].res.error === "not_found" && 
 expect("duplicate payment", r["pay duplicate then different amount"].a === true && r["pay duplicate then different amount"].b.error === "duplicate_payment" && r["pay duplicate then different amount"].c === true && r["pay duplicate then different amount"].rows === 2 && r["pay duplicate then different amount"].ids[1] === "PAY-0002", r["pay duplicate then different amount"]);
 expect("pay no name column", r["pay student with no name column"].res.ok === true && r["pay student with no name column"].res.studentName === "", r["pay student with no name column"]);
 expect("pay invalid date", r["pay invalid date falls back to today"].ok === true, r["pay invalid date falls back to today"]);
+
+// Payment carries the month paid for and the course; wrong course refused;
+// same payment again refused; the next month goes through.
+const pm = r["pay with month course and unknown course"];
+expect("pay month course ok", pm.ok.ok === true && pm.rows[1][6] === "2026-10" && pm.rows[1][10] === "English A1", pm.ok);
+expect("pay unknown course refused", pm.bad.error === "unknown_course" && pm.bad.ok === false, pm.bad);
+expect("pay same payment refused", pm.sameAgain.error === "duplicate_payment", pm.sameAgain);
+expect("pay next month ok", pm.otherMonth.ok === true && pm.rows.length === 3 && pm.otherMonth.course === "English A1", pm.otherMonth);
 
 expect("schema healthy", r["schema healthy"].problems.length === 0 && r["schema healthy"].tabs.length === 4 && r["schema healthy"].registrations[0] === "Registration ID", r["schema healthy"]);
 expect("schema renamed column", r["schema renamed column"].problems.length === 1 && r["schema renamed column"].problems[0].indexOf("Students") === 0, r["schema renamed column"]);
