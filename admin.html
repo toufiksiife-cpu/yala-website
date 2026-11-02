@@ -122,7 +122,7 @@
   .sub-head .key, .level-head .key { font-weight: 600; color: var(--ink); font-size: .82rem; }
   .level-block { margin-block-start: 10px; margin-inline-start: 14px; padding-inline-start: 12px; border-inline-start: 2px solid var(--line); }
   .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
-  .course-row input[type="text"], .course-row input[type="number"] { width: 100%; padding: 7px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
+  .course-row input[type="text"], .course-row input[type="number"], .course-row select { width: 100%; padding: 7px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; background: #fff; }
   .course-row .hide { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
   .course-row .moves { display: flex; gap: 4px; }
   .course-row.is-hidden { opacity: .55; }
@@ -421,6 +421,10 @@
           <div>
             <label for="nc-room">Room (optional)</label>
             <input id="nc-room" type="text" maxlength="40">
+          </div>
+          <div>
+            <label for="nc-teacher">Teacher (from Teachers tab)</label>
+            <select id="nc-teacher"><option value="">—</option></select>
           </div>
         </div>
         <div class="actions">
@@ -907,6 +911,7 @@
             (res.detail ? " " + res.detail : "") + " Press Refresh.");
         }
         state.catalog = res.categories || [];
+        state.teachers = res.teachers || state.teachers || [];
         renderCatalog();
       })
       .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
@@ -997,6 +1002,28 @@
       option.textContent = cat.name || cat.key;
       select.appendChild(option);
     });
+
+    // Refresh both course pickers (new course + each row) with registered teachers.
+    fillTeachers_(el("nc-teacher"));
+  }
+
+  // A select of registered teachers; keeps any free-text teacher already saved.
+  function fillTeachers_(sel) {
+    sel.innerHTML = "";
+    var blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "—";
+    sel.appendChild(blank);
+    var pool = (state.teachers || []).slice();
+    var current = sel.dataset.current;
+    if (current && pool.indexOf(current) === -1) pool.push(current);
+    pool.forEach(function (name) {
+      var option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      sel.appendChild(option);
+    });
+    sel.value = current || "";
   }
 
   // One name field (English display) plus its Arabic version.
@@ -1131,13 +1158,11 @@
     room.addEventListener("input", function () { course.room = this.value; });
     row.appendChild(room);
 
-    var teacher = document.createElement("input");
-    teacher.type = "text";
-    teacher.maxLength = 60;
-    teacher.value = course.teacher || "";
-    teacher.placeholder = "Teacher";
+    var teacher = document.createElement("select");
+    teacher.dataset.current = course.teacher || "";
     teacher.setAttribute("aria-label", "Teacher of this course");
-    teacher.addEventListener("input", function () { course.teacher = this.value; });
+    fillTeachers_(teacher);
+    teacher.addEventListener("change", function () { course.teacher = this.value; });
     row.appendChild(teacher);
 
     var hide = document.createElement("label");
@@ -1247,7 +1272,8 @@
       level: el("nc-level").value,
       name: el("nc-name").value,
       fee: el("nc-fee").value,
-      room: el("nc-room").value
+      room: el("nc-room").value,
+      teacher: el("nc-teacher").value
     })
       .then(function (res) {
         save.disabled = false;
@@ -1260,6 +1286,7 @@
         el("nc-name").value = "";
         el("nc-fee").value = "";
         el("nc-room").value = "";
+        el("nc-teacher").value = "";
         show(el("cat-new"), false);
         notice("Course added: " + res.full + ". The website updates within a minute.", "ok");
         loadCatalog();

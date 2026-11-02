@@ -1242,7 +1242,8 @@ function catalog_() {
     });
     out.push({ key: item.key, ar: item.ar, order: catalogRank_(item), courses: item.courses });
   }
-  return { ok: true, categories: out };
+  // Courses and add-course pickers choose a teacher from the Teachers tab.
+  return { ok: true, categories: out, teachers: readTeachers_(SpreadsheetApp.openById(SPREADSHEET_ID)) };
 }
 
 // Matches the public API, so what staff see is what visitors get.
@@ -1411,6 +1412,11 @@ function addCourseLocked_(body) {
   var iSub = colAny_(head, ['subcategory']);
   var iLevel = colAny_(head, ['subsubcategory']);
   var iTeacher = colAny_(head, ['teacher']);
+  if (iTeacher === -1 && clean_(body.teacher, 60)) {
+    iTeacher = head.length;
+    sheet.getRange(1, iTeacher + 1).setValue('Teacher');
+    head.push('Teacher');
+  }
   if (iCat === -1) return missing_('Config', 'Category', head);
   if (iName === -1) return missing_('Config', 'CourseName', head);
   if (iFull === -1) return missing_('Config', 'FullCourseName', head);

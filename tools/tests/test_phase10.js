@@ -55,7 +55,10 @@ const CONFIG_ROWS = () => [
 ];
 
 function fixture(scriptPath) {
-  const tabs = { Config: makeSheet(CONFIG_ROWS()) };
+  const tabs = {
+    Config: makeSheet(CONFIG_ROWS()),
+    Teachers: makeSheet([["TeacherID", "Name", "Status"], ["TCH-1", "Mr. Karim", "Active"], ["TCH-2", "Mme. Amina", "Active"], ["TCH-3", "Gone Coach", "Inactive"]])
+  };
   const ctx = {
     Date, JSON, Number, String, Math, Array, Object, isFinite, isNaN, encodeURIComponent, console,
     SpreadsheetApp: {
@@ -115,7 +118,8 @@ run("admin catalog nests fields", () => {
     head: head.join("|"),
     cats: res.categories.map(c => c.key + "@" + c.order + "=" + c.courses.length),
     primary: res.categories[0].courses.map(c => [c.subject, c.level, c.subjectAr, c.levelAr].join("/")),
-    fees: res.categories[0].courses.map(c => c.fee)
+    fees: res.categories[0].courses.map(c => c.fee),
+    teachers: res.teachers
   };
 });
 
@@ -174,9 +178,10 @@ run("add course fills the tree", () => {
   const f = adminFixture();
   const res = f.call({
     action: "addCourse", category: "Adult Language Courses",
-    subject: "Spanish", level: "A1", name: "Spanish A1", fee: 4200, room: "Room 3"
+    subject: "Spanish", level: "A1", name: "Spanish A1", fee: 4200, room: "Room 3", teacher: "Mme. Amina"
   });
   const added = f.tabs.Config.values[f.tabs.Config.values.length - 1];
+  const head = f.tabs.Config.values[0];
   const dup = f.call({
     action: "addCourse", category: "Adult Language Courses",
     subject: "Spanish", level: "A1", name: "Spanish A1", fee: 4200
@@ -186,6 +191,7 @@ run("add course fills the tree", () => {
     res, dup,
     row: added.slice(0, 4),
     sort: added[HEAD.indexOf("SortOrder")],
+    teacherColumn: head.indexOf("Teacher") !== -1 && added[head.indexOf("Teacher")] === "Mme. Amina",
     inCatalog: after.categories[1].courses.some(c => c.row === res.row && c.level === "A1" && c.subject === "Spanish")
   };
 });
@@ -219,6 +225,8 @@ expect("admin columns + fields", typeof nested === "object" && nested.ok === tru
   nested.primary[1] === "First year/Mathematics/السنة الأولى/الرياضيات" &&
   nested.primary[2] === "Second year/Mathematics/السنة الثانية/الرياضيات" &&
   nested.fees.join(",") === "2500,2500,2500", nested);
+expect("catalog lists active teachers", Array.isArray(nested.teachers) &&
+  JSON.stringify(nested.teachers) === JSON.stringify(["Mr. Karim", "Mme. Amina"]), nested.teachers);
 
 const saved = results["save renames a section and moves a course"];
 expect("save renames + moves", typeof saved === "object" && saved.res.ok === true &&
@@ -238,7 +246,7 @@ expect("add course", typeof added === "object" && added.res.ok === true &&
   added.res.full === "Adult Language Courses - Spanish - A1 - Spanish A1" &&
   added.row[1] === "Spanish" && added.row[2] === "A1" && added.row[3] === "Spanish A1" &&
   added.dup.error === "course_exists" && added.inCatalog === true &&
-  added.sort === 4, added);
+  added.teacherColumn === true && added.sort === 4, added);
 
 const pub = results["public catalog is nested and price-free"];
 expect("public tree", typeof pub === "object" &&
