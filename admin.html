@@ -97,6 +97,16 @@
   .att-choice label { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; cursor: pointer; }
   .att-choice input { width: 18px; height: 18px; accent-color: var(--navy); }
   .att-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px; }
+
+  /* Weekly timetable: one column per day, stacking to 2 columns on phones. */
+  .att-week { display: grid; grid-template-columns: repeat(7, minmax(108px, 1fr)); gap: 6px; margin-block: 6px 12px; }
+  .att-day { background: #F7FAFF; border: 1px solid var(--navy); border-radius: var(--radius); padding: 8px; min-width: 0; }
+  .att-day h3 { font-size: .78rem; margin: 0 0 6px; text-transform: uppercase; letter-spacing: .05em; }
+  .att-day p { font-size: .78rem; margin: 0 0 6px; line-height: 1.4; }
+  .att-day .none { color: #8795A8; }
+  .att-day .sess { display: block; width: 100%; text-align: start; border: 0; background: none; padding: 0; margin: 0 0 6px; font: inherit; font-size: .78rem; line-height: 1.4; color: inherit; cursor: pointer; }
+  .att-day .sess:hover { text-decoration: underline; color: var(--navy); }
+  @media (max-width: 900px) { .att-week { grid-template-columns: repeat(2, 1fr); } }
   #att-empty { margin-block: 0 12px; }
 
   /* Course catalog tree: section → sub-section → level → course */
@@ -316,6 +326,8 @@
           <input id="att-date" type="date">
         </div>
       </div>
+
+      <div id="att-week" class="att-week" hidden aria-label="Weekly timetable"></div>
 
       <p class="note" id="att-empty" hidden></p>
       <div id="att-roster"></div>
@@ -1783,12 +1795,14 @@
         state.courses = res.courses || [];
         state.teachers = res.teachers || [];
         fillSessions();
+        renderWeek();
         fillCourses();
         fillTeachers();
         if (!el("att-date").value) el("att-date").value = todayISO();
 
         var has = state.sessions.length > 0;
         show(el("att-empty"), !has);
+        show(el("att-week"), has);
         el("att-empty").textContent = has ? "" : "No weekly class yet. Add one with the button below.";
         show(el("att-roster"), has);
         show(el("att-all"), has);
@@ -1802,15 +1816,19 @@
       .catch(function () { fail("Could not reach the server. Check your connection, then press Refresh."); });
   }
 
+  function sortedSessions() {
+    return state.sessions.slice().sort(function (a, b) {
+      var day = DAYS.indexOf(a.day) - DAYS.indexOf(b.day);
+      if (day !== 0) return day;
+      return a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
+    });
+  }
+
   function fillSessions() {
     var sel = el("att-session");
     var keep = sel.value;
     sel.innerHTML = "";
-    state.sessions.slice().sort(function (a, b) {
-      var day = DAYS.indexOf(a.day) - DAYS.indexOf(b.day);
-      if (day !== 0) return day;
-      return a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
-    }).forEach(function (session) {
+    sortedSessions().forEach(function (session) {
       var option = document.createElement("option");
       option.value = session.sessionId;
       option.textContent = session.day + " " + session.start + " — " + session.course +
@@ -1818,6 +1836,37 @@
       sel.appendChild(option);
     });
     if (keep) sel.value = keep;
+  }
+
+  // The weekly plan the front desk reads at a glance; a click preselects the class above.
+  function renderWeek() {
+    var week = el("att-week");
+    week.innerHTML = "";
+    DAYS.forEach(function (day) {
+      var cell = document.createElement("div");
+      cell.className = "att-day";
+      var h = document.createElement("h3");
+      h.textContent = day;
+      cell.appendChild(h);
+      var ones = sortedSessions().filter(function (s) { return s.day === day; });
+      if (!ones.length) {
+        var none = document.createElement("p");
+        none.className = "none";
+        none.textContent = "—";
+        cell.appendChild(none);
+      }
+      ones.forEach(function (s) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "sess";
+        btn.dataset.sid = s.sessionId;
+        btn.textContent = s.start + " – " + s.end + " · " + s.course;
+        if (s.teacher) btn.textContent += " · " + s.teacher;
+        if (s.room) btn.textContent += " · " + s.room;
+        cell.appendChild(btn);
+      });
+      week.appendChild(cell);
+    });
   }
 
   function fillCourses() {
@@ -2083,6 +2132,12 @@
   el("cat-new").addEventListener("submit", addCourse);
   el("att-session").addEventListener("change", loadRoster);
   el("att-date").addEventListener("change", loadRoster);
+  el("att-week").addEventListener("click", function (e) {
+    var sess = e.target.closest("button.sess");
+    if (!sess) return;
+    el("att-session").value = sess.dataset.sid;
+    loadRoster();
+  });
 
   el("search").addEventListener("input", function () {
     if (state.tab === "Attendance" || state.tab === "Courses") return;
