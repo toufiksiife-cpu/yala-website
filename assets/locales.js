@@ -10,6 +10,7 @@ window.I18N_EN = {
   "nav.switch": "العربية",
   "nav.menu": "Menu",
   "footer.tag": "Academic support and intensive language programs in Tlemcen.",
+  "footer.address": "Abou Tachfine, Tlemcen, Algeria",
   "footer.contact": "Contact",
   "footer.follow": "Follow us",
   "footer.rights": "YALA — Yaghmoracen Academy of Languages and Arts",

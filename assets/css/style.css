@@ -90,7 +90,7 @@ a { color: var(--navy); }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   padding: 14px 22px; border-radius: 10px;
-  font-weight: 700; text-decoration: none; border: 2px solid transparent;
+  font: inherit; font-weight: 700; text-decoration: none; border: 2px solid transparent;
   transition: filter .15s ease;
 }
 .btn:hover { filter: brightness(1.06); }
@@ -161,7 +161,10 @@ a { color: var(--navy); }
 .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 620px) and (max-width: 899px) {
   .grid.cols-2, .grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
-  .grid.cols-3 > :last-child { grid-column: 1 / -1; }
+  /* Odd number of cards: centre the lone last card instead of stretching it. */
+  .grid.cols-3 > :last-child:nth-child(odd) {
+    grid-column: 1 / -1; max-width: calc(50% - 8px); justify-self: center;
+  }
 }
 @media (min-width: 900px) { .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
 
@@ -175,15 +178,11 @@ a { color: var(--navy); }
 .card .accent { width: 34px; height: 3px; border-radius: 2px; background: var(--green); margin-block-end: 14px; flex-shrink: 0; }
 .card h3 { margin: 0 0 6px; font-size: 1.25rem; color: var(--navy-dark); }
 .card p { margin: 0; color: var(--muted); font-size: .95rem; }
-.card .accent {
-  width: 34px; height: 3px; border-radius: 2px;
-  background: var(--green); margin-block-end: 14px;
-}
 
 /* ---------- prose ---------- */
 .prose { max-width: 68ch; }
 .prose p { margin: 0 0 16px; }
-.prose h2 { margin: 28px 0 10px; font-size: 1.1rem; color: var(--navy); }
+.prose h2 { margin: 28px 0 10px; font-size: clamp(1.3rem, 3vw, 1.5rem); color: var(--navy); }
 .prose ul { margin: 0 0 16px; padding-inline-start: 20px; }
 .prose li { margin: 0 0 6px; }
 
@@ -244,11 +243,6 @@ a { color: var(--navy); }
 .success-box h2 { margin-block-start: 0; color: var(--navy); }
 .success-box .id { font-weight: 700; font-size: 1.2rem; color: var(--navy); }
 
-/* ---------- decorative divider ---------- */
-.section-divider { text-align: center; margin-block: 8px; }
-.section-divider svg { max-width: 120px; height: 6px; }
-.section-divider .line-bar { stroke: var(--navy); stroke-width: 3; stroke-linecap: round; }
-
 /* ---------- footer ---------- */
 .site-footer {
   background: var(--navy-dark); color: #C9D6E6;
@@ -261,6 +255,7 @@ a { color: var(--navy); }
 .site-footer p { margin: 0 0 10px; }
 .site-footer ul { list-style: none; margin: 0; padding: 0; }
 .site-footer li { margin-block-end: 8px; }
+.site-footer li a { display: inline-block; padding-block: 4px; }
 .site-footer .legal {
   margin-block-start: 28px; padding-block-start: 18px;
   border-block-start: 1px solid rgba(255,255,255,.15);

@@ -1,3 +1,5 @@
 User-agent: *
 Disallow: /admin
 Disallow: /admin.html
+
+Sitemap: https://yala-website.toufik-siife.workers.dev/sitemap.xml
