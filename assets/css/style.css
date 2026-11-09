@@ -109,7 +109,6 @@ a { color: var(--navy); }
   position: relative;
 }
 .hero .wrap { position: relative; z-index: 2; }
-.hero-art img { opacity: .92; }
 .hero .kicker {
   display: inline-block; margin: 0 0 14px;
   font-size: .85rem; letter-spacing: .04em;
@@ -126,9 +125,6 @@ a { color: var(--navy); }
   font-size: 1.05rem; color: #E4ECF5;
 }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.hero { overflow: hidden; }
-.hero-art { margin-block-start: 28px; }
-.hero-art img { border-radius: var(--radius); max-width: 720px; width: 100%; height: auto; display: block; margin-inline: auto; }
 
 /* ---------- hero animation (single orchestrated reveal) ---------- */
 .hero .kicker,
