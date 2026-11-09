@@ -12,11 +12,14 @@
 <meta property="og:image" content="https://yala-website.toufik-siife.workers.dev/assets/img/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://yala-website.toufik-siife.workers.dev/">
+<link rel="alternate" hreflang="ar" href="https://yala-website.toufik-siife.workers.dev/">
+<link rel="alternate" hreflang="en" href="https://yala-website.toufik-siife.workers.dev/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://yala-website.toufik-siife.workers.dev/">
 <meta name="theme-color" content="#1E456F">
 <link rel="icon" href="assets/img/favicon.png">
 <link rel="stylesheet" href="assets/css/style.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/cairo-arabic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/fonts.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -63,6 +66,7 @@
       <a href="contact.html" data-i18n="nav.contact">اتصل بنا</a>
     </nav>
     <div class="nav-actions">
+      <a class="btn btn-primary nav-cta" href="register.html" data-i18n="nav.cta">سجّل</a>
       <button class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" data-i18n-aria="nav.menu" aria-label="القائمة">☰</button>
       <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch">EN</button>
     </div>
@@ -88,36 +92,30 @@
       <h2 data-i18n="home.catsTitle">دوراتنا</h2>
       <p class="section-note" data-i18n="home.catsNote">المواعيد الكاملة لكل دورة على صفحة الدورات.</p>
       <div class="grid cols-3">
-        <article class="card">
-          <div class="accent"></div>
+        <a class="card" href="courses.html">
           <h3 data-i18n="cat1">الدعم المدرسي — الابتدائي</h3>
           <p data-i18n="cat1d">قراءة، كتابة، رياضيات، فرنسية، عربية</p>
-        </article>
-        <article class="card">
-          <div class="accent"></div>
+        </a>
+        <a class="card" href="courses.html">
           <h3 data-i18n="cat2">الدعم المدرسي — المتوسط</h3>
           <p data-i18n="cat2d">جميع المواد الأساسية وتقوية المكتسبات</p>
-        </article>
-        <article class="card">
-          <div class="accent"></div>
+        </a>
+        <a class="card" href="courses.html">
           <h3 data-i18n="cat3">الدعم المدرسي — الثانوي</h3>
           <p data-i18n="cat3d">تحضير البكالوريا وشهادة التعليم المتوسط</p>
-        </article>
-        <article class="card">
-          <div class="accent"></div>
+        </a>
+        <a class="card" href="courses.html">
           <h3 data-i18n="cat4">دورات اللغات للأطفال</h3>
           <p data-i18n="cat4d">من 6 إلى 14 سنة، دروس تفاعلية</p>
-        </article>
-        <article class="card">
-          <div class="accent"></div>
+        </a>
+        <a class="card" href="courses.html">
           <h3 data-i18n="cat5">دورات اللغات للكبار</h3>
           <p data-i18n="cat5d">إنجليزي، فرنسي، ألماني، تركي، إسباني</p>
-        </article>
-        <article class="card">
-          <div class="accent"></div>
+        </a>
+        <a class="card" href="courses.html">
           <h3 data-i18n="cat6">دورات تكوينية أخرى</h3>
           <p data-i18n="cat6d">تحضير متخصص ولغات مهنية</p>
-        </article>
+        </a>
       </div>
     </div>
   </section>
@@ -146,7 +144,25 @@
     <div class="wrap">
       <h2 data-i18n="home.locTitle">أين تجدنا</h2>
       <p class="section-note" data-i18n="home.locText">أبو تشفين، تلمسان، الجزائر.</p>
-      <a class="btn btn-outline" href="contact.html" data-i18n="home.locCta">انظر الخريطة</a>
+      <div class="grid cols-2" style="margin-block-start:24px">
+        <div class="card">
+          <h3 data-i18n="contact.hoursTitle">أوقات العمل</h3>
+          <dl class="hours" style="margin-block-start:12px">
+            <div><dt data-i18n="hours.days">السبت – الخميس</dt><dd dir="ltr">09:00 – 20:00</dd></div>
+            <div><dt data-i18n="hours.friday">الجمعة</dt><dd data-i18n="hours.closed">مغلق</dd></div>
+          </dl>
+          <p style="margin-block-start:16px">
+            <a class="btn btn-outline" href="contact.html" data-i18n="home.locCta">انظر الخريطة</a>
+          </p>
+        </div>
+        <div class="map-frame">
+          <iframe
+            src="https://www.google.com/maps?q=34.910965,-1.318242&z=16&output=embed"
+            title="خريطة أبو تشفين، تلمسان"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
     </div>
   </section>
 

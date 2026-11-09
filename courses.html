@@ -11,11 +11,14 @@
 <meta property="og:image" content="https://yala-website.toufik-siife.workers.dev/assets/img/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://yala-website.toufik-siife.workers.dev/courses">
+<link rel="alternate" hreflang="ar" href="https://yala-website.toufik-siife.workers.dev/courses">
+<link rel="alternate" hreflang="en" href="https://yala-website.toufik-siife.workers.dev/courses?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://yala-website.toufik-siife.workers.dev/courses">
 <meta name="theme-color" content="#1E456F">
 <link rel="icon" href="assets/img/favicon.png">
 <link rel="stylesheet" href="assets/css/style.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/cairo-arabic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/fonts.css">
 <style>
   .cat-block { margin-block-end: 40px; }
   .cat-block h2 { margin-block-end: 4px; }
@@ -43,6 +46,7 @@
       <a href="contact.html" data-i18n="nav.contact">اتصل بنا</a>
     </nav>
     <div class="nav-actions">
+      <a class="btn btn-primary nav-cta" href="register.html" data-i18n="nav.cta">سجّل</a>
       <button class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" data-i18n-aria="nav.menu" aria-label="القائمة">☰</button>
       <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch">EN</button>
     </div>
@@ -113,15 +117,27 @@
 
   var isAR = document.documentElement.lang !== "en";
   var T = isAR
-    ? { error: "تعذّر تحميل الدورات حالياً.", retry: "راسلنا على واتساب", loading: "جارٍ تحميل الدورات…", room: "قاعة", count: function (n) { return n + " دورة"; } }
-    : { error: "Courses could not be loaded right now.", retry: "Message us on WhatsApp", loading: "Loading courses…", room: "Room", count: function (n) { return n + (n === 1 ? " course" : " courses"); } };
+    ? { error: "تعذّر تحميل الدورات حالياً.", retry: "راسلنا على واتساب", again: "أعد المحاولة", loading: "جارٍ تحميل الدورات…", room: "قاعة", count: function (n) { return n + " دورة"; } }
+    : { error: "Courses could not be loaded right now.", retry: "Message us on WhatsApp", again: "Try again", loading: "Loading courses…", room: "Room", count: function (n) { return n + (n === 1 ? " course" : " courses"); } };
 
 
   var box = document.getElementById("catalog");
+  var CACHE_KEY = "yala-courses-v1";
+  var CACHE_MS = 10 * 60 * 1000;
 
   function fail(msg) {
-    box.innerHTML = '<div class="card"><h3>' + T.error + '</h3><p style="margin-block:12px"><a class="btn btn-primary" href="https://wa.me/213652783647" rel="noopener">' + T.retry + '</a></p></div>';
+    box.innerHTML = '<div class="card"><h3>' + T.error + '</h3>'
+      + '<p style="margin-block:12px"><a class="btn btn-primary" href="https://wa.me/213652783647" rel="noopener">' + T.retry + '</a> '
+      + '<button class="btn btn-outline" type="button" id="courses-retry">' + T.again + '</button></p></div>';
+    var b = document.getElementById("courses-retry");
+    if (b) b.onclick = load;
     if (msg) console.warn("[courses]", msg);
+  }
+
+  function skeleton() {
+    var html = "";
+    for (var i = 0; i < 3; i++) html += '<div class="skeleton" aria-hidden="true"><span></span><span></span><span></span></div>';
+    box.innerHTML = html;
   }
 
   function title(tag, text, className) {
@@ -185,13 +201,27 @@
 
   if (!API_URL) { fail("API_URL is empty"); return; }
 
-  fetch(API_URL + "?action=courses")
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (!data || data.ok !== true || !data.categories || !data.categories.length) throw new Error(data && data.error || "empty");
-      render(data);
-    })
-    .catch(function (err) { fail(err.message); });
+  function load() {
+    var cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null"); } catch (e) {}
+    if (cached && cached.d && Date.now() - cached.t < CACHE_MS) { render(cached.d); return; }
+
+    skeleton();
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 15000) : null;
+
+    fetch(API_URL + "?action=courses", ctrl ? { signal: ctrl.signal } : undefined)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        clearTimeout(timer);
+        if (!data || data.ok !== true || !data.categories || !data.categories.length) throw new Error(data && data.error || "empty");
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
+        render(data);
+      })
+      .catch(function (err) { clearTimeout(timer); fail(err.message); });
+  }
+
+  load();
 })();
 </script>
 </body>

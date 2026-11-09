@@ -61,12 +61,15 @@ a { color: var(--navy); }
 }
 .nav-links.open { display: flex; }
 .nav-links a {
-  padding: 12px 4px; text-decoration: none; color: var(--ink);
+  display: flex; align-items: center; min-height: 48px;
+  padding: 0 4px; text-decoration: none; color: var(--ink);
   font-weight: 600; border-block-end: 1px solid var(--line);
 }
 .nav-links a[aria-current="page"] { color: var(--navy); }
 
 .nav-actions { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; }
+.nav-cta { display: none; padding: 9px 16px; border-radius: 8px; font-size: .95rem; }
+@media (min-width: 760px) { .nav-cta { display: inline-flex; } }
 
 .icon-btn {
   appearance: none; background: none; border: 1px solid var(--line);
@@ -174,10 +177,18 @@ a { color: var(--navy); }
   transition: transform .2s ease, box-shadow .2s ease;
   display: flex; flex-direction: column;
 }
+/* One accent rule for every card, so no grid looks different from the next. */
+.card::before {
+  content: ""; display: block; width: 34px; height: 3px;
+  border-radius: 2px; background: var(--green); margin-block-end: 14px;
+}
 .card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(30,69,111,.08); }
-.card .accent { width: 34px; height: 3px; border-radius: 2px; background: var(--green); margin-block-end: 14px; flex-shrink: 0; }
 .card h3 { margin: 0 0 6px; font-size: 1.25rem; color: var(--navy-dark); }
 .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+
+a.card { text-decoration: none; color: inherit; }
+a.card:hover { border-color: var(--navy); }
+a.card h3 { color: var(--navy); }
 
 /* ---------- prose ---------- */
 .prose { max-width: 68ch; }
@@ -185,6 +196,32 @@ a { color: var(--navy); }
 .prose h2 { margin: 28px 0 10px; font-size: clamp(1.3rem, 3vw, 1.5rem); color: var(--navy); }
 .prose ul { margin: 0 0 16px; padding-inline-start: 20px; }
 .prose li { margin: 0 0 6px; }
+
+/* ---------- loading skeleton (courses) ---------- */
+.skeleton {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; margin-block-end: 16px;
+}
+.skeleton span {
+  display: block; height: 14px; border-radius: 6px;
+  background: var(--bg-soft); margin-block-end: 10px;
+}
+.skeleton span:nth-child(1) { width: 38%; height: 18px; }
+.skeleton span:nth-child(2) { width: 85%; }
+.skeleton span:nth-child(3) { width: 60%; margin-block-end: 0; }
+
+/* ---------- numbered steps ---------- */
+.steps { display: grid; gap: 16px; margin-block-start: 20px; counter-reset: step; }
+@media (min-width: 700px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+.step { background: var(--bg-soft); border-radius: var(--radius); padding: 18px; }
+.step::before {
+  counter-increment: step; content: counter(step);
+  display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 50%; background: var(--navy); color: #fff;
+  font-weight: 700; margin-block-end: 12px;
+}
+.step h3 { margin: 0 0 4px; font-size: 1.05rem; color: var(--navy-dark); }
+.step p { margin: 0; color: var(--muted); font-size: .95rem; }
 
 /* ---------- contact ---------- */
 .contact-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 24px 8px; }

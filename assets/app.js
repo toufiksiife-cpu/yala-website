@@ -8,6 +8,11 @@
 
   var lang = read() === "en" ? "en" : "ar";
 
+  // ?lang=en makes the English page linkable and crawlable; it wins over the stored choice.
+  var q = null;
+  try { q = new URLSearchParams(location.search).get("lang"); } catch (e) {}
+  if (q === "en" || q === "ar") lang = q;
+
   // English is applied over the Arabic markup. Arabic is the HTML itself,
   // so no-JS visitors and Google still get full Arabic content.
   if (lang === "en" && window.I18N_EN) {
@@ -35,7 +40,10 @@
     if (toggle) {
       // Reload so Arabic comes back from the HTML, not from a second copy.
       write(lang === "en" ? "ar" : "en");
-      location.reload();
+      var url = new URL(location.href);
+      if (lang === "en") url.searchParams.delete("lang");
+      else url.searchParams.set("lang", "en");
+      location.href = url.toString();
       return;
     }
     var burger = e.target.closest("[data-menu-toggle]");

@@ -4,6 +4,7 @@ const { spawnSync } = require("child_process");
 const path = require("path");
 
 const files = [2, 5, 6, 7, 8, 9, 10].map(n => path.join(__dirname, "tests", "test_phase" + n + ".js"));
+files.push(path.join(__dirname, "tests", "test_public.js"));
 let failed = 0;
 for (const file of files) {
   const r = spawnSync(process.execPath, [file], { stdio: "inherit" });
