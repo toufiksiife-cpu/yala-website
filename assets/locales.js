@@ -55,6 +55,7 @@ window.I18N_EN = {
   "photo.5": "YALA academy, Tlemcen — photo 5",
   "photo.6": "YALA academy, Tlemcen — photo 6",
   "photo.7": "YALA academy, Tlemcen — photo 7",
+  "photo.8": "YALA academy, Tlemcen — photo 8",
   "home.locText": "Abou Tachefine, Tlemcen, Algeria.",
   "home.locCta": "See the map",
 

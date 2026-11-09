@@ -31,7 +31,7 @@ for (const page of pages) {
 
 const home = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const gallery = [...home.matchAll(/<img[^>]+src="assets\/img\/gallery\/[^"]+"[^>]*>/g)].map(m => m[0]);
-check("homepage shows the gallery", gallery.length === 7);
+check("homepage shows the gallery", gallery.length === 8);
 for (const tag of gallery) {
   const file = /src="([^"]+)"/.exec(tag)[1];
   check(file + " exists", fs.existsSync(path.join(root, file)));
