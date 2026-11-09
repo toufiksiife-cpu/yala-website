@@ -24,6 +24,20 @@ for (const page of pages) {
   for (const m of html.matchAll(/data-i18n="([^"]+)"/g)) {
     check(page + " translation: " + m[1], Object.prototype.hasOwnProperty.call(keys, m[1]));
   }
+  for (const m of html.matchAll(/data-i18n-alt="([^"]+)"/g)) {
+    check(page + " alt translation: " + m[1], Object.prototype.hasOwnProperty.call(keys, m[1]));
+  }
+}
+
+const home = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const gallery = [...home.matchAll(/<img[^>]+src="assets\/img\/gallery\/[^"]+"[^>]*>/g)].map(m => m[0]);
+check("homepage shows the gallery", gallery.length === 7);
+for (const tag of gallery) {
+  const file = /src="([^"]+)"/.exec(tag)[1];
+  check(file + " exists", fs.existsSync(path.join(root, file)));
+  check(file + " has alt text", /alt="[^"]+"/.test(tag));
+  check(file + " reserves its size", /width="\d+"/.test(tag) && /height="\d+"/.test(tag));
+  check(file + " is lazy", /loading="lazy"/.test(tag));
 }
 
 const courses = fs.readFileSync(path.join(root, "courses.html"), "utf8");

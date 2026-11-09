@@ -31,6 +31,10 @@
       var v = t[el.getAttribute("data-i18n-placeholder")];
       if (v) el.setAttribute("placeholder", v);
     });
+    document.querySelectorAll("[data-i18n-alt]").forEach(function (el) {
+      var v = t[el.getAttribute("data-i18n-alt")];
+      if (v) el.setAttribute("alt", v);
+    });
     var titleKey = document.documentElement.getAttribute("data-title");
     if (titleKey && t[titleKey]) document.title = t[titleKey];
   }

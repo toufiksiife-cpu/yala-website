@@ -197,6 +197,17 @@ a.card h3 { color: var(--navy); }
 .prose ul { margin: 0 0 16px; padding-inline-start: 20px; }
 .prose li { margin: 0 0 6px; }
 
+/* ---------- photo gallery ---------- */
+.gallery {
+  display: grid; gap: 12px; margin-block-start: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.gallery img {
+  display: block; width: 100%; height: auto;
+  border-radius: var(--radius); background: var(--bg-soft);
+}
+@media (min-width: 900px) { .gallery { grid-template-columns: repeat(4, 1fr); } }
+
 /* ---------- loading skeleton (courses) ---------- */
 .skeleton {
   border: 1px solid var(--line); border-radius: var(--radius);
