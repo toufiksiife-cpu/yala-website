@@ -82,6 +82,9 @@ check("English page canonicalises to itself", /canonical/.test(app) && /"\?lang=
 const admin = fs.readFileSync(path.join(root, "admin.html"), "utf8");
 check("admin Courses tab collapses each section", /createElement\("details"\)[\s\S]{0,200}course-cat/.test(admin));
 check("admin course rows have labels", /function courseCell\(labelText, input\)/.test(admin));
+check("admin course rows carry their own sub-section and level",
+  /textField\("Sub-section"/.test(admin) && /textField\("Level"/.test(admin));
+check("admin removes a sub-section from all its courses", /function removeSubject/.test(admin) && /\.chip-x/.test(admin));
 check("admin add-course form offers existing names", /id="dl-sub"/.test(admin) && /id="dl-level"/.test(admin));
 check("admin add-course preselects its section", /openAddCourse\(cat\.key\)/.test(admin));
 check("admin warns before discarding edits",

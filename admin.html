@@ -110,7 +110,8 @@
   @media (max-width: 900px) { .att-week { grid-template-columns: repeat(2, 1fr); } }
   #att-empty { margin-block: 0 12px; }
 
-  /* Course catalog tree: section → sub-section → level → course */
+  /* Course catalog: one collapsible box per section, one row per course.
+     Sub-section and level live on the row, so clearing one course never touches another. */
   .course-cat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; margin-block-end: 12px; }
   .course-cat > summary { display: flex; gap: 10px; align-items: center; padding: 12px 16px; cursor: pointer; font-weight: 700; color: var(--navy-dark); }
   .course-cat > summary .cat-title { flex: 1; min-width: 0; }
@@ -123,10 +124,11 @@
   .course-cat-head input[type="text"] { width: 100%; padding: 8px 10px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
   .course-cat-head .key { font-size: .78rem; color: var(--muted); }
   .course-cat-head .moves { display: flex; gap: 4px; }
-  .sub-block { margin-block-start: 14px; padding-block-start: 10px; border-block-start: 1px dashed #D8DEE7; }
-  .sub-head .key, .level-head .key { font-weight: 600; color: var(--ink); font-size: .82rem; }
-  .level-block { margin-block-start: 10px; margin-inline-start: 14px; padding-inline-start: 12px; border-inline-start: 2px solid var(--line); }
-  .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
+  .sub-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-block: 2px 10px; }
+  .sub-chips .key { margin-inline-end: 2px; }
+  .chip-x { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: .78rem; color: var(--ink); cursor: pointer; }
+  .chip-x:hover, .chip-x:focus-visible { border-color: #B42318; color: #B42318; }
+  .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
   .course-row input[type="text"], .course-row input[type="number"], .course-row select { width: 100%; padding: 7px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; background: #fff; }
   .course-row .hide { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
   .course-row .moves { display: flex; gap: 4px; }
@@ -138,13 +140,16 @@
   .mini-add { margin-inline-start: auto; min-height: 40px; }
   .cat-actions { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px 0; padding-block: 10px; background: #fff; border-block-start: 1px solid var(--line); }
   #cat-save.is-dirty { box-shadow: 0 0 0 3px rgba(241,130,37,.35); }
-  @media (max-width: 700px) {
-    .course-row { grid-template-columns: 1fr 1fr; gap: 10px; padding-block: 10px; }
+  @media (max-width: 1000px) {
+    .course-row { grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding-block: 10px; }
     .course-head { display: none; }
     .cell > span { display: block; font-size: .72rem; color: var(--muted); }
+    .course-row .hide, .course-row .moves { min-height: 44px; align-items: center; }
+  }
+  @media (max-width: 700px) {
+    .course-row { grid-template-columns: 1fr 1fr; }
     /* Staff use this on a phone: every control under the thumb should be 44px. */
-    .mini-add, .course-row .mini, .course-row .hide { min-height: 44px; min-width: 44px; }
-    .course-row .hide, .course-row .moves { align-items: center; }
+    .mini-add, .chip-x, .course-row .mini, .course-row .hide { min-height: 44px; min-width: 44px; }
   }
 </style>
 </head>
@@ -403,8 +408,9 @@
 
     <section id="courses" hidden aria-label="Courses">
       <p class="note">
-        Click a section to open or close it. Each row is: course name, monthly fee, room, teacher.
-        Renaming a section, sub-section or level renames every course inside it.
+        Click a section to open or close it. Every row carries its own sub-section and level, so you can
+        change or clear one course without touching the others; type a name that already exists to keep courses together.
+        The × buttons remove a sub-section from all its courses — the courses stay, directly under the section.
         Hidden courses leave the website and the register form but stay on old registrations.
         Press Save changes when you are done — the website catches up within a minute.
       </p>
@@ -418,7 +424,7 @@
         <h2>Add a course</h2>
         <p class="note" style="margin-block-start:0;font-size:.82rem">
           The section button above fills this in for you. Sub-section and level suggest the names you already use;
-          leave either empty if it does not apply.
+          leave either empty if it does not apply. The form stays open so you can add the next course in the same group.
         </p>
         <div class="grid">
           <div>
@@ -1019,69 +1025,24 @@
       head.appendChild(addHere);
       body.appendChild(head);
 
-      // Column headings, once per section: the rows are otherwise five bare boxes.
-      var header = document.createElement("div");
-      header.className = "course-row course-head";
-      ["Course name", "Fee (DZD)", "Room", "Teacher", "Shown", ""].forEach(function (text) {
-        var span = document.createElement("span");
-        span.textContent = text;
-        header.appendChild(span);
-      });
-      body.appendChild(header);
+      body.appendChild(subChips(cat));
 
-      var groups = groupCourses(cat.courses);
-      groups.forEach(function (group, gi) {
-        var sub = document.createElement("div");
-        sub.className = "sub-block";
-
-        var subHead = document.createElement("div");
-        subHead.className = "course-cat-head sub-head";
-        nameFields(subHead, "Sub-section", group.name, group.ar, function (name, arabic) {
-          group.name = name;
-          group.ar = arabic;
-          group.courses.forEach(function (course) {
-            course.subject = name;
-            course.subjectAr = arabic;
-          });
-          markDirty();
+      if (!cat.courses.length) {
+        var none = document.createElement("p");
+        none.className = "key";
+        none.textContent = "No courses yet — use + Add a course here.";
+        body.appendChild(none);
+      } else {
+        var header = document.createElement("div");
+        header.className = "course-row course-head";
+        ["Course name", "Sub-section", "Level", "Fee (DZD)", "Room", "Teacher", "Shown", ""].forEach(function (text) {
+          var span = document.createElement("span");
+          span.textContent = text;
+          header.appendChild(span);
         });
-        subHead.appendChild(countLabel(group.courses.length));
-        subHead.appendChild(movePair(gi, groups.length, function (target) {
-          groups.splice(target, 0, groups.splice(gi, 1)[0]);
-          flattenGroups(cat, groups);
-        }));
-        sub.appendChild(subHead);
-
-        group.levels.forEach(function (level, li) {
-          var levelBox = document.createElement("div");
-          levelBox.className = "level-block";
-
-          var levelHead = document.createElement("div");
-          levelHead.className = "course-cat-head level-head";
-          nameFields(levelHead, "Level", level.name, level.ar, function (name, arabic) {
-            level.name = name;
-            level.ar = arabic;
-            level.courses.forEach(function (course) {
-              course.level = name;
-              course.levelAr = arabic;
-            });
-            markDirty();
-          });
-          levelHead.appendChild(countLabel(level.courses.length));
-          levelHead.appendChild(movePair(li, group.levels.length, function (target) {
-            group.levels.splice(target, 0, group.levels.splice(li, 1)[0]);
-            flattenGroups(cat, groups);
-          }));
-          levelBox.appendChild(levelHead);
-
-          level.courses.forEach(function (course) {
-            levelBox.appendChild(courseRow(cat, course));
-          });
-          sub.appendChild(levelBox);
-        });
-
-        body.appendChild(sub);
-      });
+        body.appendChild(header);
+        cat.courses.forEach(function (course) { body.appendChild(courseRow(cat, course)); });
+      }
 
       card.appendChild(body);
       box.appendChild(card);
@@ -1099,6 +1060,68 @@
     // Refresh both course pickers (new course + each row) with registered teachers.
     fillTeachers_(el("nc-teacher"));
     fillSuggestions_();
+  }
+
+  // One chip per sub-section used in this section. Removing a sub-section only
+  // clears it from its courses; the courses stay and sit directly under the section.
+  function subChips(cat) {
+    var bar = document.createElement("div");
+    bar.className = "sub-chips";
+    fillChips(bar, cat);
+    return bar;
+  }
+
+  function fillChips(bar, cat) {
+    bar.innerHTML = "";
+    var names = [];
+    cat.courses.forEach(function (course) {
+      var name = course.subject || "";
+      if (name && names.indexOf(name) === -1) names.push(name);
+    });
+    bar.hidden = !names.length;
+    if (!names.length) return;
+    var label = document.createElement("span");
+    label.className = "key";
+    label.textContent = "Sub-sections:";
+    bar.appendChild(label);
+    names.forEach(function (name) {
+      var count = cat.courses.filter(function (course) { return (course.subject || "") === name; }).length;
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip-x";
+      chip.textContent = name + " ×";
+      chip.setAttribute("aria-label", "Remove sub-section " + name + " from " + count +
+        (count === 1 ? " course" : " courses"));
+      chip.addEventListener("click", function () { removeSubject(cat, name, count); });
+      bar.appendChild(chip);
+    });
+  }
+
+  function removeSubject(cat, name, count) {
+    if (!window.confirm('Remove the sub-section "' + name + '" from ' + count +
+      (count === 1 ? " course" : " courses") +
+      "?\n\nThe courses stay in this section, just without a sub-section.")) return;
+    cat.courses.forEach(function (course) {
+      if ((course.subject || "") !== name) return;
+      course.subject = "";
+      course.subjectAr = "";
+    });
+    markDirty();
+    renderCatalog();
+  }
+
+  // Arabic names live on every row; when a name is typed that already exists,
+  // reuse its translation instead of keeping the old one.
+  function arabicFor(field, value, skip) {
+    var found = "";
+    state.catalog.forEach(function (cat) {
+      cat.courses.forEach(function (course) {
+        if (course === skip || (course[field] || "") !== value) return;
+        var arabic = field === "subject" ? course.subjectAr : course.levelAr;
+        if (arabic) found = arabic;
+      });
+    });
+    return found;
   }
 
   // Add-course suggestions: the sub-section and level names already in use.
@@ -1207,6 +1230,8 @@
     return moves;
   }
 
+  // Used by the student/teacher course checkboxes: group a section's courses
+  // by sub-section, then by level, skipping empty names.
   function groupCourses(courses) {
     var groups = [];
     courses.forEach(function (course) {
@@ -1238,19 +1263,6 @@
     return null;
   }
 
-  // The sheet stores one row per course, so a group's position is the position
-  // of its courses. Rebuilding the flat list is what saves that order.
-  function flattenGroups(cat, groups) {
-    cat.courses = [];
-    groups.forEach(function (group) {
-      group.levels.forEach(function (level) {
-        level.courses.forEach(function (course) { cat.courses.push(course); });
-      });
-    });
-    markDirty();
-    renderCatalog();
-  }
-
   // A labelled cell: the caption is hidden on desktop (the header row says it)
   // and shown on phones, where each course becomes a small block.
   function courseCell(labelText, input) {
@@ -1267,13 +1279,31 @@
     var row = document.createElement("div");
     row.className = "course-row" + (course.hidden ? " is-hidden" : "");
 
-    var name = document.createElement("input");
-    name.type = "text";
-    name.maxLength = 80;
-    name.value = course.name;
-    name.setAttribute("aria-label", "Course name");
-    name.addEventListener("input", function () { course.name = this.value; markDirty(); });
-    row.appendChild(courseCell("Course name", name));
+    function textField(labelText, value, max, listId, onChange) {
+      var input = document.createElement("input");
+      input.type = "text";
+      input.maxLength = max;
+      input.value = value;
+      if (listId) input.setAttribute("list", listId);
+      input.setAttribute("aria-label", labelText);
+      input.addEventListener("input", function () {
+        onChange(this.value);
+        markDirty();
+      });
+      row.appendChild(courseCell(labelText, input));
+    }
+
+    textField("Course name", course.name, 80, "", function (value) { course.name = value; });
+    textField("Sub-section", course.subject || "", 80, "dl-sub", function (value) {
+      course.subject = value;
+      course.subjectAr = arabicFor("subject", value, course);
+      var bar = row.closest(".cat-body").querySelector(".sub-chips");
+      if (bar) fillChips(bar, cat);
+    });
+    textField("Level", course.level || "", 80, "dl-level", function (value) {
+      course.level = value;
+      course.levelAr = arabicFor("level", value, course);
+    });
 
     var fee = document.createElement("input");
     fee.type = "number";
@@ -1318,23 +1348,20 @@
 
     var moves = document.createElement("div");
     moves.className = "moves";
+    var index = cat.courses.indexOf(course);
     [-1, 1].forEach(function (step) {
-      var index = cat.courses.indexOf(course);
       var target = index + step;
-      var other = cat.courses[target];
-      var sameLevel = other && (other.subject || "") === (course.subject || "") &&
-        (other.level || "") === (course.level || "");
       var button = document.createElement("button");
       button.type = "button";
       button.className = "mini";
       button.textContent = step < 0 ? "↑" : "↓";
       button.setAttribute("aria-label", step < 0 ? "Move up" : "Move down");
-      if (!sameLevel) {
+      if (target < 0 || target >= cat.courses.length) {
         button.disabled = true;
       } else {
         button.addEventListener("click", function () {
+          cat.courses[index] = cat.courses[target];
           cat.courses[target] = course;
-          cat.courses[index] = other;
           markDirty();
           renderCatalog();
         });
@@ -1420,16 +1447,16 @@
           if (res.error === "unauthorized" || res.error === "forbidden") return signOut(explain(res));
           return notice(catalogError(res), "err");
         }
-        el("nc-sub").value = "";
-        el("nc-level").value = "";
         el("nc-name").value = "";
         el("nc-fee").value = "";
         el("nc-room").value = "";
         el("nc-teacher").value = "";
         state.openCats[catKey] = true;
-        show(el("cat-new"), false);
-        notice("Course added: " + res.full + ". The website updates within a minute.", "ok");
-        loadCatalog();
+        el("nc-name").focus();
+        notice("Added " + res.full + (state.dirty
+          ? ". Save your other changes to see it in the list."
+          : ". Fill the next course, or press Cancel — the website updates within a minute."), "ok");
+        if (!state.dirty) loadCatalog();
       })
       .catch(function () {
         save.disabled = false;
