@@ -117,12 +117,7 @@
         <div class="fieldset" id="courses-box">
           <legend data-i18n="form.courses">الدورات المطلوبة</legend>
           <p class="hint" data-i18n="form.coursesHint">اختر دورة واحدة أو أكثر.</p>
-          <div class="field course-filter">
-            <label for="course-filter" data-i18n="form.filter">ابحث عن دورة</label>
-            <input id="course-filter" type="search" autocomplete="off" data-i18n-placeholder="form.filterHint" placeholder="اكتب اسم الدورة أو المادة…">
-          </div>
           <div id="course-list"><p data-i18n="form.coursesLoading">جارٍ تحميل الدورات…</p></div>
-          <p class="hint" id="course-empty" data-i18n="form.noResults" hidden>لا توجد دورة بهذا البحث.</p>
           <p class="field-error" id="courses-error" hidden></p>
         </div>
 
@@ -319,9 +314,6 @@
 
   /* ---- courses loaded from the sheet ---- */
 
-  var filter = document.getElementById("course-filter");
-  var emptyMsg = document.getElementById("course-empty");
-
   fetch(window.YALA_API + "?action=courses")
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -356,9 +348,6 @@
               var label = document.createElement("label");
               label.className = "choice";
               label.setAttribute("for", id);
-              // Search also matches the Arabic category/subject, which the course name never contains.
-              label.dataset.search = [cat.ar, cat.key, group.ar, group.name, level.ar, level.name, course.name]
-                .filter(Boolean).join(" ").toLowerCase();
               var input = document.createElement("input");
               input.type = "checkbox";
               input.name = "courses";
@@ -374,24 +363,6 @@
         });
         section.appendChild(body);
         box.appendChild(section);
-      });
-
-      filter.addEventListener("input", function () {
-        var q = filter.value.trim().toLowerCase();
-        var found = 0;
-        box.querySelectorAll("details.course-group").forEach(function (d) {
-          var hits = 0;
-          d.querySelectorAll("label.choice").forEach(function (l) {
-            var hit = !q || l.dataset.search.indexOf(q) !== -1;
-            l.hidden = !hit;
-            if (hit) hits++;
-          });
-          d.hidden = hits === 0;
-          // A search opens the categories that matched; clearing it collapses them again.
-          d.open = !!q && hits > 0;
-          found += hits;
-        });
-        emptyMsg.hidden = !q || found > 0;
       });
     })
     .catch(function () {

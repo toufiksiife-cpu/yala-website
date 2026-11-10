@@ -63,7 +63,6 @@ check("courses jumps to a section via chips", /id="course-chips"/.test(courses) 
 check("courses anchors clear the sticky header", /scroll-margin-top/.test(courses));
 
 const reg = fs.readFileSync(path.join(root, "register.html"), "utf8");
-check("register filters the course list", /id="course-filter"/.test(reg) && /dataset\.search/.test(reg));
 check("register collapses each course category", /createElement\("details"\)/.test(reg));
 check("register ties errors to their field", /aria-invalid/.test(reg) && /aria-describedby/.test(reg));
 

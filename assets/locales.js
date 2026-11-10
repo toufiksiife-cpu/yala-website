@@ -90,8 +90,6 @@ window.I18N_EN = {
   "form.optional": "Optional",
   "form.courses": "Courses you want",
   "form.coursesHint": "Choose one or more courses.",
-"form.filter": "Find a course",
-"form.filterHint": "Type a course or subject name.",
 "form.noResults": "No course matches this search.",
   "form.coursesLoading": "Loading courses…",
   "form.parentTitle": "Parent or guardian",

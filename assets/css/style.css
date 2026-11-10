@@ -293,8 +293,7 @@ a.card h3 { color: var(--navy); }
 .course-group h3 { font-size: 1.1rem; font-weight: 600; color: var(--navy); margin: 14px 0 4px; }
 .course-group h4 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 10px 0 4px 14px; }
 
-/* Course picker: a search field and one collapsible block per category. */
-.course-filter { margin-block-end: 14px; }
+/* Course picker: one collapsible block per category. */
 .course-group { border-block-start: 1px solid var(--line); }
 .course-group summary { cursor: pointer; padding-block: 10px; }
 .course-group summary h2 { display: inline; margin: 0; }
