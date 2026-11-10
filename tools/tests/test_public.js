@@ -77,6 +77,19 @@ check("css has step numbers", /\.step::before/.test(css));
 const app = fs.readFileSync(path.join(root, "assets", "app.js"), "utf8");
 check("English page canonicalises to itself", /canonical/.test(app) && /"\?lang=en"/.test(app));
 
+// Staff site: the Courses tab is a collapsible tree, and no helper may be declared twice
+// (a later declaration silently wins, which once broke the "add a course here" buttons).
+const admin = fs.readFileSync(path.join(root, "admin.html"), "utf8");
+check("admin Courses tab collapses each section", /createElement\("details"\)[\s\S]{0,200}course-cat/.test(admin));
+check("admin course rows have labels", /function courseCell\(labelText, input\)/.test(admin));
+check("admin add-course form offers existing names", /id="dl-sub"/.test(admin) && /id="dl-level"/.test(admin));
+check("admin add-course preselects its section", /openAddCourse\(cat\.key\)/.test(admin));
+check("admin warns before discarding edits",
+  /Discard your unsaved course changes\?/.test(admin) && /beforeunload/.test(admin));
+const decls = [...admin.matchAll(/^  function (\w+)\(/gm)].map(m => m[1]);
+const dupes = decls.filter((n, i) => decls.indexOf(n) !== i);
+check("admin declares no helper twice" + (dupes.length ? " (" + dupes.join(", ") + ")" : ""), !dupes.length);
+
 if (fails.length) {
   console.log("FAIL — " + fails.length + " public page check(s)");
   fails.slice(0, 20).forEach(f => console.log("  - " + f));

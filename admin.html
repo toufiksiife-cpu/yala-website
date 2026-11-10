@@ -111,7 +111,12 @@
   #att-empty { margin-block: 0 12px; }
 
   /* Course catalog tree: section → sub-section → level → course */
-  .course-cat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 14px 16px; margin-block-end: 12px; }
+  .course-cat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; margin-block-end: 12px; }
+  .course-cat > summary { display: flex; gap: 10px; align-items: center; padding: 12px 16px; cursor: pointer; font-weight: 700; color: var(--navy-dark); }
+  .course-cat > summary .cat-title { flex: 1; min-width: 0; }
+  .course-cat > summary .key { font-weight: 400; }
+  .course-cat[open] > summary { border-block-end: 1px solid var(--line); }
+  .cat-body { padding: 14px 16px; }
   .course-cat-head { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-block-end: 8px; }
   .course-cat-head .name, .course-cat-head .ar { flex: 1 1 200px; min-width: 0; }
   .course-cat-head .name label, .course-cat-head .ar label { display: block; font-size: .78rem; font-weight: 600; margin-block-end: 4px; }
@@ -126,7 +131,21 @@
   .course-row .hide { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
   .course-row .moves { display: flex; gap: 4px; }
   .course-row.is-hidden { opacity: .55; }
-  @media (max-width: 700px) { .course-row { grid-template-columns: 1fr 1fr; } }
+  .course-head { font-size: .78rem; font-weight: 600; color: var(--muted); border-block-start: 1px solid var(--line); }
+  .course-head span { padding-block: 7px; }
+  .cell { display: grid; gap: 3px; min-width: 0; }
+  .cell > span { display: none; }
+  .mini-add { margin-inline-start: auto; min-height: 40px; }
+  .cat-actions { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px 0; padding-block: 10px; background: #fff; border-block-start: 1px solid var(--line); }
+  #cat-save.is-dirty { box-shadow: 0 0 0 3px rgba(241,130,37,.35); }
+  @media (max-width: 700px) {
+    .course-row { grid-template-columns: 1fr 1fr; gap: 10px; padding-block: 10px; }
+    .course-head { display: none; }
+    .cell > span { display: block; font-size: .72rem; color: var(--muted); }
+    /* Staff use this on a phone: every control under the thumb should be 44px. */
+    .mini-add, .course-row .mini, .course-row .hide { min-height: 44px; min-width: 44px; }
+    .course-row .hide, .course-row .moves { align-items: center; }
+  }
 </style>
 </head>
 <body>
@@ -384,19 +403,23 @@
 
     <section id="courses" hidden aria-label="Courses">
       <p class="note">
-        Order is section → sub-section → level → course, and the website shows it exactly like this.
-        Rename any level, move it with ↑ ↓, change a price, or hide a course, then press Save.
+        Click a section to open or close it. Each row is: course name, monthly fee, room, teacher.
+        Renaming a section, sub-section or level renames every course inside it.
         Hidden courses leave the website and the register form but stay on old registrations.
-        The website catches up within a minute.
+        Press Save changes when you are done — the website catches up within a minute.
       </p>
       <div id="cat-list"></div>
-      <div class="att-actions">
+      <div class="cat-actions">
         <button class="btn btn-primary" id="cat-save" type="button">Save changes</button>
         <button class="btn btn-outline" id="cat-add" type="button">+ Add a course</button>
       </div>
 
       <form id="cat-new" class="pay-form" hidden>
         <h2>Add a course</h2>
+        <p class="note" style="margin-block-start:0;font-size:.82rem">
+          The section button above fills this in for you. Sub-section and level suggest the names you already use;
+          leave either empty if it does not apply.
+        </p>
         <div class="grid">
           <div>
             <label for="nc-cat">Section</label>
@@ -404,11 +427,13 @@
           </div>
           <div>
             <label for="nc-sub">Sub-section (e.g. English, First year)</label>
-            <input id="nc-sub" type="text" maxlength="80">
+            <input id="nc-sub" type="text" maxlength="80" list="dl-sub">
+            <datalist id="dl-sub"></datalist>
           </div>
           <div>
             <label for="nc-level">Level (e.g. A1, Mathematics)</label>
-            <input id="nc-level" type="text" maxlength="80">
+            <input id="nc-level" type="text" maxlength="80" list="dl-level">
+            <datalist id="dl-level"></datalist>
           </div>
           <div>
             <label for="nc-name">Course name (shown on the website)</label>
@@ -462,7 +487,14 @@
 
   var API = window.YALA_ADMIN_API;
   var TOKEN_KEY = "yala-admin-token";
-  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [], teachers: [], balances: null, unpaid: false, catalog: null };
+  var state = { token: "", email: "", tab: "Registrations", data: null, query: "", payStudent: null, sessions: [], courses: [], teachers: [], balances: null, unpaid: false, catalog: null, openCats: {}, dirty: false };
+
+  // Unsaved catalogue edits are expensive to retype: warn before leaving the page.
+  window.addEventListener("beforeunload", function (e) {
+    if (!state.dirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
 
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -902,6 +934,14 @@
   /* ---------- courses tab ---------- */
 
   function loadCatalog() {
+    if (state.dirty) {
+      if (!window.confirm("Discard your unsaved course changes?")) {
+        el("status").textContent = "Unsaved changes — press Save changes";
+        return;
+      }
+      state.dirty = false;
+    }
+    el("cat-save").classList.remove("is-dirty");
     ask({ action: "catalog", idToken: state.token })
       .then(function (res) {
         if (!res.ok) {
@@ -912,32 +952,82 @@
         }
         state.catalog = res.categories || [];
         state.teachers = res.teachers || state.teachers || [];
+        // Show one section open so the layout explains itself; the rest start closed.
+        if (!Object.keys(state.openCats).length && state.catalog.length) {
+          state.openCats[state.catalog[0].key] = true;
+        }
         renderCatalog();
       })
       .catch(function () { fail("Could not reach the server. Check your connection, then Refresh."); });
   }
 
+  function markDirty() {
+    state.dirty = true;
+    el("cat-save").classList.add("is-dirty");
+    el("status").textContent = "Unsaved changes — press Save changes";
+  }
+
+  function openAddCourse(catKey) {
+    show(el("cat-new"), true);
+    if (catKey) el("nc-cat").value = catKey;
+    el("nc-name").focus();
+    el("cat-new").scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
   function renderCatalog() {
     var box = el("cat-list");
     box.innerHTML = "";
-    el("status").textContent = "Nothing is saved until you press Save changes";
+    el("status").textContent = state.dirty
+      ? "Unsaved changes — press Save changes"
+      : "Nothing is saved until you press Save changes";
 
     state.catalog.forEach(function (cat, index) {
-      var card = document.createElement("div");
+      var card = document.createElement("details");
       card.className = "course-cat";
+      card.open = !!state.openCats[cat.key];
+      card.addEventListener("toggle", function () { state.openCats[cat.key] = card.open; });
+
+      var summary = document.createElement("summary");
+      var title = document.createElement("span");
+      title.className = "cat-title";
+      title.textContent = cat.name || cat.key;
+      summary.appendChild(title);
+      summary.appendChild(countLabel(cat.courses.length, cat.courses.filter(function (c) { return c.hidden; }).length));
+      card.appendChild(summary);
+
+      var body = document.createElement("div");
+      body.className = "cat-body";
 
       var head = document.createElement("div");
       head.className = "course-cat-head";
       nameFields(head, "Section", cat.name || cat.key, cat.ar, function (name, arabic) {
         cat.name = name;
         cat.ar = arabic;
+        title.textContent = name || cat.key;
+        markDirty();
       });
-      head.appendChild(countLabel(cat.courses.length));
       head.appendChild(movePair(index, state.catalog.length, function (target) {
         state.catalog.splice(target, 0, state.catalog.splice(index, 1)[0]);
+        markDirty();
         renderCatalog();
       }));
-      card.appendChild(head);
+      var addHere = document.createElement("button");
+      addHere.type = "button";
+      addHere.className = "mini mini-add";
+      addHere.textContent = "+ Add a course here";
+      addHere.addEventListener("click", function () { openAddCourse(cat.key); });
+      head.appendChild(addHere);
+      body.appendChild(head);
+
+      // Column headings, once per section: the rows are otherwise five bare boxes.
+      var header = document.createElement("div");
+      header.className = "course-row course-head";
+      ["Course name", "Fee (DZD)", "Room", "Teacher", "Shown", ""].forEach(function (text) {
+        var span = document.createElement("span");
+        span.textContent = text;
+        header.appendChild(span);
+      });
+      body.appendChild(header);
 
       var groups = groupCourses(cat.courses);
       groups.forEach(function (group, gi) {
@@ -953,6 +1043,7 @@
             course.subject = name;
             course.subjectAr = arabic;
           });
+          markDirty();
         });
         subHead.appendChild(countLabel(group.courses.length));
         subHead.appendChild(movePair(gi, groups.length, function (target) {
@@ -974,6 +1065,7 @@
               course.level = name;
               course.levelAr = arabic;
             });
+            markDirty();
           });
           levelHead.appendChild(countLabel(level.courses.length));
           levelHead.appendChild(movePair(li, group.levels.length, function (target) {
@@ -988,9 +1080,10 @@
           sub.appendChild(levelBox);
         });
 
-        card.appendChild(sub);
+        body.appendChild(sub);
       });
 
+      card.appendChild(body);
       box.appendChild(card);
     });
 
@@ -1005,6 +1098,36 @@
 
     // Refresh both course pickers (new course + each row) with registered teachers.
     fillTeachers_(el("nc-teacher"));
+    fillSuggestions_();
+  }
+
+  // Add-course suggestions: the sub-section and level names already in use.
+  function fillSuggestions_() {
+    function fill(id, values) {
+      var list = el(id);
+      list.innerHTML = "";
+      values.forEach(function (value) {
+        var option = document.createElement("option");
+        option.value = value;
+        list.appendChild(option);
+      });
+    }
+    function unique(values) {
+      var out = [];
+      values.forEach(function (value) {
+        if (value && out.indexOf(value) === -1) out.push(value);
+      });
+      return out.sort();
+    }
+    var subs = [], levels = [];
+    state.catalog.forEach(function (cat) {
+      cat.courses.forEach(function (course) {
+        subs.push(course.subject || "");
+        levels.push(course.level || "");
+      });
+    });
+    fill("dl-sub", unique(subs));
+    fill("dl-level", unique(levels));
   }
 
   // A select of registered teachers; keeps any free-text teacher already saved.
@@ -1060,10 +1183,10 @@
     parent.appendChild(ar);
   }
 
-  function countLabel(count) {
+  function countLabel(count, hidden) {
     var key = document.createElement("div");
     key.className = "key";
-    key.textContent = count + (count === 1 ? " course" : " courses");
+    key.textContent = count + (count === 1 ? " course" : " courses") + (hidden ? " · " + hidden + " hidden" : "");
     return key;
   }
 
@@ -1124,7 +1247,20 @@
         level.courses.forEach(function (course) { cat.courses.push(course); });
       });
     });
+    markDirty();
     renderCatalog();
+  }
+
+  // A labelled cell: the caption is hidden on desktop (the header row says it)
+  // and shown on phones, where each course becomes a small block.
+  function courseCell(labelText, input) {
+    var wrap = document.createElement("label");
+    wrap.className = "cell";
+    var span = document.createElement("span");
+    span.textContent = labelText;
+    wrap.appendChild(span);
+    wrap.appendChild(input);
+    return wrap;
   }
 
   function courseRow(cat, course) {
@@ -1136,8 +1272,8 @@
     name.maxLength = 80;
     name.value = course.name;
     name.setAttribute("aria-label", "Course name");
-    name.addEventListener("input", function () { course.name = this.value; });
-    row.appendChild(name);
+    name.addEventListener("input", function () { course.name = this.value; markDirty(); });
+    row.appendChild(courseCell("Course name", name));
 
     var fee = document.createElement("input");
     fee.type = "number";
@@ -1146,8 +1282,8 @@
     fee.inputMode = "numeric";
     fee.value = course.fee;
     fee.setAttribute("aria-label", "Monthly fee in DZD");
-    fee.addEventListener("input", function () { course.fee = this.value; });
-    row.appendChild(fee);
+    fee.addEventListener("input", function () { course.fee = this.value; markDirty(); });
+    row.appendChild(courseCell("Fee (DZD)", fee));
 
     var room = document.createElement("input");
     room.type = "text";
@@ -1155,15 +1291,15 @@
     room.value = course.room;
     room.placeholder = "Room";
     room.setAttribute("aria-label", "Room");
-    room.addEventListener("input", function () { course.room = this.value; });
-    row.appendChild(room);
+    room.addEventListener("input", function () { course.room = this.value; markDirty(); });
+    row.appendChild(courseCell("Room", room));
 
     var teacher = document.createElement("select");
     teacher.dataset.current = course.teacher || "";
     teacher.setAttribute("aria-label", "Teacher of this course");
     fillTeachers_(teacher);
-    teacher.addEventListener("change", function () { course.teacher = this.value; });
-    row.appendChild(teacher);
+    teacher.addEventListener("change", function () { course.teacher = this.value; markDirty(); });
+    row.appendChild(courseCell("Teacher", teacher));
 
     var hide = document.createElement("label");
     hide.className = "hide";
@@ -1174,6 +1310,7 @@
     check.addEventListener("change", function () {
       course.hidden = this.checked;
       row.classList.toggle("is-hidden", this.checked);
+      markDirty();
     });
     hide.appendChild(check);
     hide.appendChild(document.createTextNode("Hidden"));
@@ -1198,6 +1335,7 @@
         button.addEventListener("click", function () {
           cat.courses[target] = course;
           cat.courses[index] = other;
+          markDirty();
           renderCatalog();
         });
       }
@@ -1262,6 +1400,7 @@
   function addCourse(event) {
     event.preventDefault();
     var save = el("nc-save");
+    var catKey = el("nc-cat").value;
     save.disabled = true;
     el("status").textContent = "Adding…";
     ask({
@@ -1287,6 +1426,7 @@
         el("nc-fee").value = "";
         el("nc-room").value = "";
         el("nc-teacher").value = "";
+        state.openCats[catKey] = true;
         show(el("cat-new"), false);
         notice("Course added: " + res.full + ". The website updates within a minute.", "ok");
         loadCatalog();
@@ -2166,7 +2306,7 @@
       return;
     }
     if (e.target.closest("#cat-save")) return saveCatalog();
-    if (e.target.closest("#cat-add")) return show(el("cat-new"), true);
+    if (e.target.closest("#cat-add")) return openAddCourse();
     if (e.target.closest("#nc-cancel")) return show(el("cat-new"), false);
     if (e.target.closest("#att-all")) {
       Array.prototype.forEach.call(el("att-roster").querySelectorAll("input[value=Present]"), function (input) {
