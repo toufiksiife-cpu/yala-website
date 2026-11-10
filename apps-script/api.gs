@@ -16,6 +16,7 @@
 // The school's spreadsheet. Not a secret: it is only reachable by this script,
 // which runs as the owner. The sheet itself stays private.
 var SPREADSHEET_ID = '1-rQ6H-NzreQ5DAcgqykpGswJ4DXveWP1PrngJbEr3fk';
+var SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/edit';
 // Short: after a price change in the staff page the site must catch up quickly.
 var CACHE_SECONDS = 60;
 
@@ -269,10 +270,72 @@ function register_(data) {
     cache.put('reg-' + phone + '-' + hash_(name), '1', 600);
     cache.put(hourKey, String(sentThisHour + 1), 3600);
 
+    notifyStaff_({
+      id: row[col['RegistrationID']], name: name, age: age, phone: phone, email: email,
+      courses: chosen, parentName: under18 ? parentName : '', parentPhone: under18 ? parentPhone : '',
+      parentRelation: under18 ? parentRelation : '', notes: notes
+    });
+
     return { ok: true, id: row[col['RegistrationID']], under18: under18 };
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ================= STAFF NOTIFICATION ================= */
+
+// A new registration used to sit in the sheet until somebody opened it. This
+// mails everyone active in the Staff tab, so the parent is called the same day.
+// Never throws: the row is saved already and the parent must not see an error.
+function notifyStaff_(info) {
+  try {
+    var to = activeStaffEmails_();
+    if (!to.length || typeof MailApp === 'undefined') return;
+    var lines = [
+      'تسجيل جديد من موقع YALA',
+      '',
+      'الرقم: ' + info.id,
+      'الاسم: ' + info.name + ' (' + info.age + ' سنة)',
+      'الهاتف: ' + info.phone,
+      'الدورات: ' + info.courses.join(' / ')
+    ];
+    if (info.email) lines.push('البريد: ' + info.email);
+    if (info.parentName) {
+      lines.push('الولي: ' + info.parentName + ' — ' + info.parentPhone +
+        (info.parentRelation ? ' (' + info.parentRelation + ')' : ''));
+    }
+    if (info.notes) lines.push('ملاحظات: ' + info.notes);
+    lines.push('', 'افتح الجدول: ' + SPREADSHEET_URL);
+
+    MailApp.sendEmail({
+      to: to.join(','),
+      subject: 'تسجيل جديد: ' + info.name + ' — ' + info.id,
+      body: lines.join('\n')
+    });
+  } catch (err) {
+    // Mail quota, bad address, no permission: the registration is already saved.
+  }
+}
+
+function activeStaffEmails_() {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Staff');
+  if (!sheet) return [];
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  var head = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  var iEmail = head.indexOf('email');
+  var iActive = head.indexOf('active');
+  if (iEmail === -1) return [];
+  var out = [];
+  for (var i = 1; i < values.length; i++) {
+    var mail = String(values[i][iEmail] || '').trim();
+    if (!mail) continue;
+    // Blank Active means active, same rule the staff page uses.
+    var state = iActive === -1 ? '' : String(values[i][iActive] || '').trim().toLowerCase();
+    if (state && state !== 'yes' && state !== 'true' && state !== '1') continue;
+    out.push(mail);
+  }
+  return out;
 }
 
 function courseNames_() {

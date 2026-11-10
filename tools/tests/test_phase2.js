@@ -24,6 +24,10 @@ function makeSheet(rows) {
         Array.from({ length: nc }, (_, j) => cell(r + i, c + j))),
       setValue: (v) => write(r, c, v)
     }),
+    getDataRange: () => ({
+      getValues: () => Array.from({ length: values.length }, (_, i) =>
+        Array.from({ length: width() }, (_, j) => cell(i + 1, j + 1)))
+    }),
     appendRow: (row) => values.push(row.slice())
   };
 }
@@ -48,7 +52,7 @@ const good = {
   parentPhone: "0552223344"
 };
 
-function fixture(tabs) {
+function fixture(tabs, sent, mailThrows) {
   const store = {};
   const ctx = {
     Date, JSON, Number, String, Math, Array, Object, isFinite, isNaN, encodeURIComponent, console,
@@ -62,6 +66,14 @@ function fixture(tabs) {
     },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) }
   };
+  if (sent) {
+    ctx.MailApp = {
+      sendEmail: (m) => {
+        if (mailThrows) throw new Error("quota exceeded");
+        sent.push(m);
+      }
+    };
+  }
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync("apps-script/api.gs", "utf8"), ctx);
   return (payload) => JSON.parse(ctx.doPost({
@@ -134,6 +146,27 @@ run("duplicate inside Students", () => {
   };
 });
 
+run("staff are mailed", () => {
+  const tabs = fresh();
+  tabs.Staff = makeSheet([
+    ["Email", "Name", "Active"],
+    ["owner@example.com", "Owner", ""],
+    ["second@example.com", "Teacher", "YES"],
+    ["gone@example.com", "Old", "NO"]
+  ]);
+  const sent = [];
+  const res = fixture(tabs, sent)(good);
+  return { res, count: sent.length, mail: sent[0] || null };
+});
+
+run("mail failure never loses the registration", () => {
+  const tabs = fresh();
+  tabs.Staff = makeSheet([["Email", "Name", "Active"], ["owner@example.com", "Owner", ""]]);
+  const sent = [];
+  const res = fixture(tabs, sent, true)(good);
+  return { res, rows: tabs.Registrations.values.length };
+});
+
 const fails = [];
 const want = (label, got, ok, detail) => { if (!ok) { fails.push(label); console.log("FAIL — " + label + ": " + JSON.stringify(detail)); } };
 
@@ -166,5 +199,16 @@ const dupStu = results["duplicate inside Students"];
 want("duplicate inside Students", typeof dupStu === "object" &&
   dupStu.res.ok === false && dupStu.regRows === 1 && dupStu.stuRows === 2, dupStu);
 
-if (!fails.length) console.log("OK — 7 phase-2 checks passed");
+const mailed = results["staff are mailed"];
+want("staff are mailed", typeof mailed === "object" && mailed.res.ok === true && mailed.count === 1 &&
+  mailed.mail && mailed.mail.to === "owner@example.com,second@example.com" &&
+  /Amina Belkacem/.test(mailed.mail.subject) && /REG-0001/.test(mailed.mail.subject) &&
+  /0551112233/.test(mailed.mail.body) && /Karim Belkacem/.test(mailed.mail.body) &&
+  /spreadsheets/.test(mailed.mail.body), mailed);
+
+const mailFail = results["mail failure never loses the registration"];
+want("mail failure keeps the row", typeof mailFail === "object" &&
+  mailFail.res.ok === true && mailFail.rows === 2, mailFail);
+
+if (!fails.length) console.log("OK — 9 phase-2 checks passed");
 else process.exitCode = 1;
