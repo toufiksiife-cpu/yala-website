@@ -13,7 +13,6 @@
 <meta property="og:site_name" content="YALA">
 <meta property="og:locale" content="ar_DZ">
 <meta property="og:locale:alternate" content="en_US">
-<meta property="og:locale:alternate" content="fr_FR">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="التسجيل — YALA، تلمسان">
@@ -24,7 +23,6 @@
 <link rel="canonical" href="https://yala-website.toufik-siife.workers.dev/register">
 <link rel="alternate" hreflang="ar" href="https://yala-website.toufik-siife.workers.dev/register">
 <link rel="alternate" hreflang="en" href="https://yala-website.toufik-siife.workers.dev/register?lang=en">
-<link rel="alternate" hreflang="fr" href="https://yala-website.toufik-siife.workers.dev/register?lang=fr">
 <link rel="alternate" hreflang="x-default" href="https://yala-website.toufik-siife.workers.dev/register">
 <meta name="theme-color" content="#1E456F">
 <link rel="icon" href="assets/img/favicon.png">
@@ -221,8 +219,7 @@
 <script src="assets/config.js"></script>
 <script>
 (function () {
-  var lang = document.documentElement.lang;
-  var isAR = lang === "ar";
+  var isAR = document.documentElement.lang !== "en";
 
   var T = isAR ? {
     errName: "أدخل الاسم الكامل (3 أحرف على الأقل).",
@@ -237,19 +234,6 @@
     errGeneric: "تعذّر إرسال الطلب. راسلنا على واتساب.",
     sending: "جارٍ الإرسال…",
     submit: "إرسال التسجيل"
-  } : lang === "fr" ? {
-    errName: "Entrez le nom complet (au moins 3 caractères).",
-    errDob: "La date de naissance n'est pas valide.",
-    errPhone: "Le numéro de téléphone n'est pas valide.",
-    errEmail: "L'adresse e-mail n'est pas valide.",
-    errCourses: "Choisissez au moins une formation.",
-    errParent: "Le nom et le téléphone du parent sont obligatoires pour un élève de moins de 18 ans.",
-    errConsent: "Merci d'accepter avant d'envoyer.",
-    errDuplicate: "Une inscription avec ce nom et ce téléphone existe déjà. Écrivez-nous sur WhatsApp pour confirmer.",
-    errTooMany: "Une inscription depuis ce numéro vient d'être envoyée. Réessayez dans 10 minutes ou écrivez-nous sur WhatsApp.",
-    errGeneric: "La demande n'a pas pu être envoyée. Écrivez-nous sur WhatsApp.",
-    sending: "Envoi…",
-    submit: "Envoyer l'inscription"
   } : {
     errName: "Enter the full name (at least 3 characters).",
     errDob: "Date of birth is not valid.",
