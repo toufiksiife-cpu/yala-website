@@ -49,6 +49,16 @@
     }
   }
 
+  var burger = document.querySelector("[data-menu-toggle]");
+
+  function closeMenu() {
+    var nav = document.getElementById("site-nav");
+    if (!nav || !nav.classList.contains("open")) return false;
+    nav.classList.remove("open");
+    if (burger) burger.setAttribute("aria-expanded", "false");
+    return true;
+  }
+
   document.addEventListener("click", function (e) {
     var toggle = e.target.closest("[data-lang-toggle]");
     if (toggle) {
@@ -60,12 +70,21 @@
       location.href = url.toString();
       return;
     }
-    var burger = e.target.closest("[data-menu-toggle]");
-    if (burger) {
+    var btn = e.target.closest("[data-menu-toggle]");
+    if (btn) {
       var nav = document.getElementById("site-nav");
+      if (!nav) return;
       var open = nav.classList.toggle("open");
-      burger.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      return;
     }
+    // Any tap outside the panel closes it, like every phone menu.
+    if (!e.target.closest("#site-nav")) closeMenu();
+  });
+
+  // Escape closes the menu and puts focus back on the button that opened it.
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && closeMenu() && burger) burger.focus();
   });
 
   var year = document.getElementById("year");

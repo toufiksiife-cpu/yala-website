@@ -35,6 +35,13 @@ for (const page of pages) {
   for (const m of html.matchAll(/data-i18n-alt="([^"]+)"/g)) {
     check(page + " alt translation: " + m[1], Object.prototype.hasOwnProperty.call(keys, m[1]));
   }
+  for (const m of html.matchAll(/data-i18n-aria="([^"]+)"/g)) {
+    check(page + " aria translation: " + m[1], Object.prototype.hasOwnProperty.call(keys, m[1]));
+  }
+  for (const m of html.matchAll(/data-i18n-placeholder="([^"]+)"/g)) {
+    check(page + " placeholder translation: " + m[1], Object.prototype.hasOwnProperty.call(keys, m[1]));
+  }
+  check(page + " labels the language button", page === "404.html" || /data-i18n-aria="nav\.changeLang"/.test(html));
 }
 
 const home = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -52,6 +59,17 @@ const courses = fs.readFileSync(path.join(root, "courses.html"), "utf8");
 check("courses caches the catalog", /sessionStorage\.setItem\(CACHE_KEY/.test(courses));
 check("courses gives up after a timeout", /AbortController/.test(courses) && /15000/.test(courses));
 check("courses offers a retry button", /courses-retry/.test(courses));
+check("courses jumps to a section via chips", /id="course-chips"/.test(courses) && /"cat-" \+ i/.test(courses));
+check("courses anchors clear the sticky header", /scroll-margin-top/.test(courses));
+
+const reg = fs.readFileSync(path.join(root, "register.html"), "utf8");
+check("register filters the course list", /id="course-filter"/.test(reg) && /dataset\.search/.test(reg));
+check("register collapses each course category", /createElement\("details"\)/.test(reg));
+check("register ties errors to their field", /aria-invalid/.test(reg) && /aria-describedby/.test(reg));
+
+const wrangler = fs.readFileSync(path.join(root, "wrangler.jsonc"), "utf8");
+check("worker serves 404.html for unknown paths", /"not_found_handling":\s*"404-page"/.test(wrangler));
+check("worker name matches the live URL", /"name":\s*"yala-website"/.test(wrangler));
 
 const css = fs.readFileSync(path.join(root, "assets", "css", "style.css"), "utf8");
 check("css has skeleton placeholders", /\.skeleton\s*\{/.test(css));

@@ -26,11 +26,17 @@ body {
   font: 16px/1.65 "Cairo", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
+/* Body line-height 1.65 leaves headings looking disconnected once they wrap. */
+h1, h2, h3, h4 { line-height: 1.25; }
+
 img { max-width: 100%; height: auto; display: block; }
 
 a { color: var(--navy); }
 
-:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+/* Orange ring is 2.6:1 on white, under the 3:1 floor for focus indicators. */
+:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+.hero :focus-visible,
+.site-footer :focus-visible { outline-color: #fff; }
 
 .wrap { width: 100%; max-width: var(--wrap); margin-inline: auto; padding-inline: 20px; }
 
@@ -69,6 +75,8 @@ a { color: var(--navy); }
 
 .nav-actions { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; }
 .nav-cta { display: none; padding: 9px 16px; border-radius: 8px; font-size: .95rem; }
+/* Beats .btn's own padding/font, which come later in the sheet (same specificity). */
+.btn.nav-cta { padding: 9px 16px; border-radius: 8px; font-size: .95rem; }
 @media (min-width: 760px) { .nav-cta { display: inline-flex; } }
 
 .icon-btn {
@@ -97,6 +105,9 @@ a { color: var(--navy); }
   transition: filter .15s ease;
 }
 .btn:hover { filter: brightness(1.06); }
+/* The header CTA is desktop-only: phones carry it in the menu, or the logo
+   shrinks to 50px at 320px. This must come after .btn (same specificity). */
+@media (max-width: 759px) { .nav-cta { display: none; } }
 /* Ink text on brand orange: white would be 2.6:1, unreadable on a phone in daylight. */
 .btn-primary { background: var(--orange); color: var(--ink); }
 .btn-ghost { border-color: currentColor; color: #fff; }
@@ -127,6 +138,10 @@ a { color: var(--navy); }
   margin: 0 0 28px; max-width: 44ch;
   font-size: 1.05rem; color: #E4ECF5;
 }
+
+/* Letter-spacing separates joined Arabic letters; it only helps the Latin face. */
+html[dir="rtl"] .hero .kicker,
+html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
 /* ---------- hero animation (single orchestrated reveal) ---------- */
@@ -183,7 +198,7 @@ a { color: var(--navy); }
   border-radius: 2px; background: var(--green); margin-block-end: 14px;
 }
 .card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(30,69,111,.08); }
-.card h3 { margin: 0 0 6px; font-size: 1.25rem; color: var(--navy-dark); }
+.card h3, .card h2 { margin: 0 0 6px; font-size: 1.25rem; color: var(--navy-dark); }
 .card p { margin: 0; color: var(--muted); font-size: .95rem; }
 
 a.card { text-decoration: none; color: inherit; }
@@ -258,10 +273,11 @@ a.card h3 { color: var(--navy); }
 .field .hint { display: block; font-weight: 400; color: var(--muted); font-size: .85rem; }
 .field input, .field select, .field textarea {
   width: 100%; padding: 12px; font: inherit; color: var(--ink);
-  background: #fff; border: 1px solid #C7D0DC; border-radius: 8px;
+  background: #fff; border: 1px solid #7A869A; border-radius: 8px;
 }
+/* 3:1 against white so the field edge is visible in daylight (WCAG 1.4.11). */
 .field input:focus, .field select:focus, .field textarea:focus {
-  border-color: var(--navy); outline: 3px solid rgba(30,69,111,.15); outline-offset: 1px;
+  border-color: var(--navy); outline: 2px solid var(--navy); outline-offset: 1px;
 }
 .field textarea { min-height: 88px; resize: vertical; }
 .field-row { display: grid; gap: 0 16px; grid-template-columns: 1fr; }
@@ -276,6 +292,15 @@ a.card h3 { color: var(--navy); }
 .course-group h2 { font-size: 1.2rem; font-weight: 700; color: var(--navy-dark); margin: 18px 0 6px; }
 .course-group h3 { font-size: 1.1rem; font-weight: 600; color: var(--navy); margin: 14px 0 4px; }
 .course-group h4 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 10px 0 4px 14px; }
+
+/* Course picker: a search field and one collapsible block per category. */
+.course-filter { margin-block-end: 14px; }
+.course-group { border-block-start: 1px solid var(--line); }
+.course-group summary { cursor: pointer; padding-block: 10px; }
+.course-group summary h2 { display: inline; margin: 0; }
+.course-group-body { padding-block-end: 6px; }
+/* .choice and .course-group set their own display, which would beat [hidden]. */
+.course-group[hidden], .choice[hidden] { display: none; }
 
 .form-error {
   border-inline-start: 4px solid #B42318; background: #FEF3F2; color: #7A271A;
@@ -303,7 +328,11 @@ a.card h3 { color: var(--navy); }
 .site-footer p { margin: 0 0 10px; }
 .site-footer ul { list-style: none; margin: 0; padding: 0; }
 .site-footer li { margin-block-end: 8px; }
-.site-footer li a { display: inline-block; padding-block: 4px; }
+.site-footer li a { display: inline-block; padding-block: 9px; }
+/* 44px minimum tap target on a phone: these are the smallest links on the page. */
+.site-footer p a { display: inline-block; padding-block: 9px; }
+/* Legal line uses .85rem text, so 9px of padding stops at 40px. */
+.site-footer .legal a { display: inline-block; padding-block: 11px; }
 .site-footer .legal {
   margin-block-start: 28px; padding-block-start: 18px;
   border-block-start: 1px solid rgba(255,255,255,.15);

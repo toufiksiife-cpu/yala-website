@@ -48,7 +48,7 @@
     <div class="nav-actions">
       <a class="btn btn-primary nav-cta" href="register.html" data-i18n="nav.cta">سجّل</a>
       <button class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" data-i18n-aria="nav.menu" aria-label="القائمة">☰</button>
-      <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch">EN</button>
+      <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch" data-i18n-aria="nav.changeLang" aria-label="تغيير اللغة">EN</button>
     </div>
   </div>
 </header>
@@ -117,7 +117,12 @@
         <div class="fieldset" id="courses-box">
           <legend data-i18n="form.courses">الدورات المطلوبة</legend>
           <p class="hint" data-i18n="form.coursesHint">اختر دورة واحدة أو أكثر.</p>
+          <div class="field course-filter">
+            <label for="course-filter" data-i18n="form.filter">ابحث عن دورة</label>
+            <input id="course-filter" type="search" autocomplete="off" data-i18n-placeholder="form.filterHint" placeholder="اكتب اسم الدورة أو المادة…">
+          </div>
           <div id="course-list"><p data-i18n="form.coursesLoading">جارٍ تحميل الدورات…</p></div>
+          <p class="hint" id="course-empty" data-i18n="form.noResults" hidden>لا توجد دورة بهذا البحث.</p>
           <p class="field-error" id="courses-error" hidden></p>
         </div>
 
@@ -265,6 +270,10 @@
     errorBox.hidden = true;
     document.querySelectorAll(".field.invalid").forEach(function (f) { f.classList.remove("invalid"); });
     document.querySelectorAll(".field-error").forEach(function (p) { p.hidden = true; p.textContent = ""; });
+    document.querySelectorAll("[aria-invalid]").forEach(function (i) {
+      i.removeAttribute("aria-invalid");
+      i.removeAttribute("aria-describedby");
+    });
     coursesError.hidden = true;
   }
 
@@ -276,7 +285,13 @@
       p.textContent = msg;
       p.hidden = false;
       var input = wrap.querySelector("input, select, textarea");
-      if (input) input.focus();
+      if (input) {
+        // Tie the message to the field, not just to the alert at the top.
+        p.id = fieldName + "-error";
+        input.setAttribute("aria-invalid", "true");
+        input.setAttribute("aria-describedby", p.id);
+        input.focus();
+      }
     }
     showError(msg);
     return false;
@@ -304,6 +319,9 @@
 
   /* ---- courses loaded from the sheet ---- */
 
+  var filter = document.getElementById("course-filter");
+  var emptyMsg = document.getElementById("course-empty");
+
   fetch(window.YALA_API + "?action=courses")
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -311,28 +329,36 @@
       var box = document.getElementById("course-list");
       box.innerHTML = "";
       data.categories.forEach(function (cat) {
-        var section = document.createElement("div");
+        // <details> keeps 25 checkboxes from pushing the submit button 5 screens down.
+        var section = document.createElement("details");
         section.className = "course-group";
+        var summary = document.createElement("summary");
         var h = document.createElement("h2");
         h.textContent = isAR ? (cat.ar || cat.key) : cat.key;
-        section.appendChild(h);
+        summary.appendChild(h);
+        section.appendChild(summary);
+        var body = document.createElement("div");
+        body.className = "course-group-body";
         (cat.groups || []).forEach(function (group) {
           if (group.name) {
             var sh = document.createElement("h3");
             sh.textContent = isAR ? (group.ar || group.name) : group.name;
-            section.appendChild(sh);
+            body.appendChild(sh);
           }
           group.levels.forEach(function (level) {
             if (level.name) {
               var lh = document.createElement("h4");
               lh.textContent = isAR ? (level.ar || level.name) : level.name;
-              section.appendChild(lh);
+              body.appendChild(lh);
             }
             level.courses.forEach(function (course) {
               var id = "c-" + course.full.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
               var label = document.createElement("label");
               label.className = "choice";
               label.setAttribute("for", id);
+              // Search also matches the Arabic category/subject, which the course name never contains.
+              label.dataset.search = [cat.ar, cat.key, group.ar, group.name, level.ar, level.name, course.name]
+                .filter(Boolean).join(" ").toLowerCase();
               var input = document.createElement("input");
               input.type = "checkbox";
               input.name = "courses";
@@ -342,11 +368,30 @@
               span.textContent = course.name;
               label.appendChild(input);
               label.appendChild(span);
-              section.appendChild(label);
+              body.appendChild(label);
             });
           });
         });
+        section.appendChild(body);
         box.appendChild(section);
+      });
+
+      filter.addEventListener("input", function () {
+        var q = filter.value.trim().toLowerCase();
+        var found = 0;
+        box.querySelectorAll("details.course-group").forEach(function (d) {
+          var hits = 0;
+          d.querySelectorAll("label.choice").forEach(function (l) {
+            var hit = !q || l.dataset.search.indexOf(q) !== -1;
+            l.hidden = !hit;
+            if (hit) hits++;
+          });
+          d.hidden = hits === 0;
+          // A search opens the categories that matched; clearing it collapses them again.
+          d.open = !!q && hits > 0;
+          found += hits;
+        });
+        emptyMsg.hidden = !q || found > 0;
       });
     })
     .catch(function () {
@@ -379,6 +424,9 @@
     if (!picked.length) {
       coursesError.textContent = T.errCourses;
       coursesError.hidden = false;
+      document.querySelectorAll('input[name="courses"]').forEach(function (i) {
+        i.setAttribute("aria-invalid", "true");
+      });
       showError(T.errCourses);
       return false;
     }

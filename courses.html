@@ -30,7 +30,7 @@
 <link rel="preload" href="assets/fonts/cairo-arabic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css">
 <style>
-  .cat-block { margin-block-end: 40px; }
+  .cat-block { margin-block-end: 40px; scroll-margin-top: 84px; }
   .cat-block h2 { margin-block-end: 4px; }
   .cat-block .count { margin: 0 0 16px; color: var(--muted); font-size: .9rem; }
   .course .meta { font-size: .85rem; color: var(--muted); margin: 0; }
@@ -38,6 +38,11 @@
   .sub-title { margin: 0 0 4px; font-weight: 700; color: var(--navy); font-size: 1.02rem; }
   .level-block { margin-block-start: 10px; }
   .level-title { margin: 0 0 8px; font-weight: 600; color: var(--muted); font-size: .92rem; }
+  /* Jump chips: 25 cards in 6 sections need a shortcut to each one. */
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-block: 4px 12px; margin-block-end: 12px; }
+  .chips[hidden] { display: none; }
+  .chip { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--navy); text-decoration: none; font-weight: 600; font-size: .92rem; }
+  .chip:hover { border-color: var(--navy); }
 </style>
 </head>
 <body>
@@ -58,7 +63,7 @@
     <div class="nav-actions">
       <a class="btn btn-primary nav-cta" href="register.html" data-i18n="nav.cta">سجّل</a>
       <button class="icon-btn menu-btn" data-menu-toggle aria-expanded="false" aria-controls="site-nav" data-i18n-aria="nav.menu" aria-label="القائمة">☰</button>
-      <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch">EN</button>
+      <button class="icon-btn lang-btn" data-lang-toggle data-i18n="nav.switch" data-i18n-aria="nav.changeLang" aria-label="تغيير اللغة">EN</button>
     </div>
   </div>
 </header>
@@ -73,8 +78,11 @@
   </section>
 
   <section class="section">
-    <div class="wrap" id="catalog" aria-live="polite">
-      <p data-i18n="courses.loading">جارٍ تحميل الدورات…</p>
+    <div class="wrap">
+      <nav class="chips" id="course-chips" aria-label="أقسام الدورات" data-i18n-aria="courses.jumps" hidden></nav>
+      <div id="catalog" aria-live="polite">
+        <p data-i18n="courses.loading">جارٍ تحميل الدورات…</p>
+      </div>
     </div>
   </section>
 
@@ -136,6 +144,8 @@
   var CACHE_MS = 10 * 60 * 1000;
 
   function fail(msg) {
+    var chips = document.getElementById("course-chips");
+    if (chips) chips.hidden = true;
     box.innerHTML = '<div class="card"><h3>' + T.error + '</h3>'
       + '<p style="margin-block:12px"><a class="btn btn-primary" href="https://wa.me/213652783647" rel="noopener">' + T.retry + '</a> '
       + '<button class="btn btn-outline" type="button" id="courses-retry">' + T.again + '</button></p></div>';
@@ -159,9 +169,18 @@
 
   function render(data) {
     box.innerHTML = "";
-    data.categories.forEach(function (cat) {
+    var chips = document.getElementById("course-chips");
+    chips.innerHTML = "";
+    data.categories.forEach(function (cat, i) {
       var section = document.createElement("div");
       section.className = "cat-block";
+      section.id = "cat-" + i;
+
+      var chip = document.createElement("a");
+      chip.className = "chip";
+      chip.href = "#cat-" + i;
+      chip.textContent = isAR ? (cat.ar || cat.key) : cat.key;
+      chips.appendChild(chip);
 
       section.appendChild(title("h2", isAR ? (cat.ar || cat.key) : cat.key));
 
@@ -207,6 +226,7 @@
 
       box.appendChild(section);
     });
+    chips.hidden = false;
   }
 
   if (!API_URL) { fail("API_URL is empty"); return; }
