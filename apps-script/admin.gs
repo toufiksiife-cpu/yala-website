@@ -70,6 +70,7 @@ function doPost(e) {
     if (action === 'catalog') return json_(catalog_());
     if (action === 'saveCatalog') return json_(saveCatalog_(body));
     if (action === 'addCourse') return json_(addCourse_(body));
+  if (action === 'deleteCourse') return json_(deleteCourse_(body));
     if (action === 'roster') return json_(roster_(body));
     if (action === 'attend') return json_(attend_(body, email));
     if (action === 'addSession') return json_(addSession_(body));
@@ -1467,6 +1468,66 @@ function addCourseLocked_(body) {
   row[iSort] = maxSort + 1;
   sheet.appendRow(row);
   return { ok: true, row: sheet.getLastRow(), full: full };
+}
+
+/* Deleting a course removes its Config row. That row is also the price list,
+ * so a course anyone is still registered for must be hidden, not deleted:
+ * balances would quietly lose its fee. */
+function deleteCourse_(body) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    return deleteCourseLocked_(body);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteCourseLocked_(body) {
+  var sheet = configSheet_();
+  var head = ensureCatalog_(sheet);
+  var iFull = colAny_(head, ['fullcoursename']);
+  if (iFull === -1) return missing_('Config', 'FullCourseName', head);
+
+  var row = Number(body.row);
+  var full = clean_(body.full, 200);
+  if (!full || !(row >= 2) || row > sheet.getLastRow()) return { ok: false, error: 'not_found' };
+
+  // Someone else's save may have moved the row since this page loaded it.
+  var actual = String(sheet.getRange(row, iFull + 1, 1, 1).getValues()[0][0] || '').trim();
+  if (actual !== full) return { ok: false, error: 'mismatch' };
+
+  var used = courseUse_(full);
+  if (used.total) return { ok: false, error: 'in_use', used: used };
+
+  sheet.deleteRow(row);
+  return { ok: true, full: full };
+}
+
+// Counts the rows in other tabs that name this course, so the staff page can
+// explain why a delete was refused instead of just failing.
+function courseUse_(full) {
+  var want = String(full).trim().toLowerCase();
+  var out = { total: 0 };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  [['Registrations', 'courses', 'registrations'], ['Students', 'courses', 'students'],
+    ['Enrollments', 'course', 'enrollments'], ['Sessions', 'course', 'sessions']].forEach(function (spec) {
+    var sheet = ss.getSheetByName(spec[0]);
+    out[spec[2]] = 0;
+    if (!sheet || sheet.getLastRow() < 2) return;
+    var values = sheet.getDataRange().getValues();
+    var idx = colOf_(values[0], spec[1], spec[0]);
+    if (idx === -1) return;
+    for (var i = 1; i < values.length; i++) {
+      // A registration can list several courses, separated by commas.
+      var picked = String(values[i][idx] || '').toLowerCase().split(',');
+      for (var p = 0; p < picked.length; p++) {
+        if (picked[p].trim() === want) { out[spec[2]]++; break; }
+      }
+    }
+    out.total += out[spec[2]];
+  });
+  return out;
 }
 
 function money_(value) {

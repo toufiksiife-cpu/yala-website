@@ -131,6 +131,9 @@
   .course-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding-block: 6px; border-block-start: 1px solid var(--line); }
   .course-row input[type="text"], .course-row input[type="number"], .course-row select { width: 100%; padding: 7px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; background: #fff; }
   .course-row .hide { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
+  .course-row .side { display: grid; gap: 4px; justify-items: start; }
+  .course-row .del { border: 1px solid #E4B4B0; background: #fff; color: #B42318; border-radius: 6px; padding: 5px 10px; font: inherit; font-size: .82rem; cursor: pointer; }
+  .course-row .del:hover, .course-row .del:focus-visible { background: #FDF2F1; border-color: #B42318; }
   .course-row .moves { display: flex; gap: 4px; }
   .course-row.is-hidden { opacity: .55; }
   .course-head { font-size: .78rem; font-weight: 600; color: var(--muted); border-block-start: 1px solid var(--line); }
@@ -152,7 +155,7 @@
   @media (max-width: 700px) {
     .course-row { grid-template-columns: 1fr 1fr; }
     /* Staff use this on a phone: every control under the thumb should be 44px. */
-    .mini-add, .chip-x, .course-row .mini, .course-row .hide { min-height: 44px; min-width: 44px; }
+    .mini-add, .chip-x, .course-row .mini, .course-row .hide, .course-row .del { min-height: 44px; min-width: 44px; }
   }
 </style>
 </head>
@@ -415,6 +418,8 @@
         change or clear one course without touching the others; type a name that already exists to keep courses together.
         The × buttons remove a sub-section from all its courses — the courses stay, directly under the section.
         Hidden courses leave the website and the register form but stay on old registrations.
+        Delete removes the course from the spreadsheet for good, and refuses while any registration still uses it —
+        tick Hidden to retire a course instead.
         Press Save changes when you are done — the website catches up within a minute.
       </p>
       <div id="cat-list"></div>
@@ -1042,7 +1047,7 @@
       } else {
         var header = document.createElement("div");
         header.className = "course-row course-head";
-        ["Course name (FR / AR)", "Sub-section", "Level", "Fee (DZD)", "Room", "Teacher", "Shown", ""].forEach(function (text) {
+        ["Course name (FR / AR)", "Sub-section", "Level", "Fee (DZD)", "Room", "Teacher", "Shown / Delete", ""].forEach(function (text) {
           var span = document.createElement("span");
           span.textContent = text;
           header.appendChild(span);
@@ -1377,7 +1382,19 @@
     });
     hide.appendChild(check);
     hide.appendChild(document.createTextNode("Hidden"));
-    row.appendChild(hide);
+
+    // Hidden keeps a course for old records; Delete removes the sheet row.
+    var side = document.createElement("div");
+    side.className = "side";
+    side.appendChild(hide);
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "del";
+    del.textContent = "Delete";
+    del.setAttribute("aria-label", "Delete this course completely");
+    del.addEventListener("click", function () { removeCourse(cat, course); });
+    side.appendChild(del);
+    row.appendChild(side);
 
     var moves = document.createElement("div");
     moves.className = "moves";
@@ -1441,6 +1458,44 @@
       .catch(function () {
         save.disabled = false;
         fail("Could not reach the server. Nothing was saved.");
+      });
+  }
+
+  // Delete is immediate, not part of Save changes: it removes the sheet row and
+  // every other row number below it shifts.
+  function removeCourse(cat, course) {
+    if (state.dirty) {
+      return notice("Save or discard your other changes first, then delete this course.", "err");
+    }
+    if (!window.confirm('Delete "' + (course.name || course.full) + '" completely?\n\n' +
+      "The row is removed from the Config sheet, so it cannot be undone from this page. " +
+      "If students are still registered for it, nothing is deleted.")) return;
+
+    ask({ action: "deleteCourse", idToken: state.token, row: course.row, full: course.full })
+      .then(function (res) {
+        if (res.ok) {
+          notice('Deleted "' + res.full + '". The website updates within a minute.', "ok");
+          return loadCatalog();
+        }
+        if (res.error === "unauthorized" || res.error === "forbidden") return signOut(explain(res));
+        if (res.error === "mismatch" || res.error === "not_found") {
+          notice("The list changed in the spreadsheet. Reloading, then try again.", "err");
+          return loadCatalog();
+        }
+        if (res.error === "in_use") {
+          var u = res.used || {};
+          var parts = [];
+          [["registrations", "registration"], ["students", "student"],
+            ["enrollments", "enrollment"], ["sessions", "class time"]].forEach(function (pair) {
+            if (u[pair[0]]) parts.push(u[pair[0]] + " " + pair[1] + (u[pair[0]] === 1 ? "" : "s"));
+          });
+          return notice("Not deleted: still used by " + parts.join(", ") +
+            ". Tick Hidden instead so old records keep their price.", "err");
+        }
+        notice(catalogError(res), "err");
+      })
+      .catch(function () {
+        fail("Could not reach the server. Nothing was deleted.");
       });
   }
 

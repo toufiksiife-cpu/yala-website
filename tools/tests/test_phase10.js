@@ -35,6 +35,7 @@ function makeSheet(rows) {
       }
     }),
     appendRow: (row) => values.push(row.slice()),
+    deleteRow: (r) => { values.splice(r - 1, 1); },
     setFrozenRows: () => {}
   };
 }
@@ -200,6 +201,29 @@ run("add course fills the tree", () => {
   };
 });
 
+run("delete removes the row but refuses a course in use", () => {
+  const f = adminFixture();
+  const before = f.call({ action: "catalog" });
+  const target = before.categories[1].courses.find(c => c.name === "English A2");
+  const spare = before.categories[1].courses.find(c => c.name === "Hidden A1");
+  // A student still points at English A2, so its fee must stay in the price list.
+  f.tabs.Students = makeSheet([
+    ["StudentID", "FullName", "Courses", "Status"],
+    ["STU-1", "Yasmine", target.full, "Active"]
+  ]);
+  const blocked = f.call({ action: "deleteCourse", row: target.row, full: target.full });
+  const wrong = f.call({ action: "deleteCourse", row: spare.row, full: "Some other course" });
+  const rowsBefore = f.tabs.Config.values.length;
+  const ok = f.call({ action: "deleteCourse", row: spare.row, full: spare.full });
+  const after = f.call({ action: "catalog" });
+  return {
+    blocked, wrong, ok,
+    rowsBefore, rowsAfter: f.tabs.Config.values.length,
+    gone: !after.categories[1].courses.some(c => c.name === "Hidden A1"),
+    keptInUse: after.categories[1].courses.some(c => c.name === "English A2")
+  };
+});
+
 run("public catalog is nested and price-free", () => {
   const f = publicFixture();
   const data = f.get();
@@ -252,6 +276,12 @@ expect("add course", typeof added === "object" && added.res.ok === true &&
   added.row[1] === "Spanish" && added.row[2] === "A1" && added.row[3] === "Spanish A1" &&
   added.dup.error === "course_exists" && added.inCatalog === true &&
   added.nameAr === "الإسبانية A1" && added.teacherColumn === true && added.sort === 4, added);
+
+const del = results["delete removes the row but refuses a course in use"];
+expect("delete course", typeof del === "object" && del.ok.ok === true &&
+  del.blocked.error === "in_use" && del.blocked.used.students === 1 &&
+  del.wrong.error === "mismatch" &&
+  del.rowsAfter === del.rowsBefore - 1 && del.gone === true && del.keptInUse === true, del);
 
 const pub = results["public catalog is nested and price-free"];
 expect("public tree", typeof pub === "object" &&

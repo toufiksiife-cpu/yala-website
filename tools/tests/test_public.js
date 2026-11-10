@@ -106,6 +106,11 @@ check("courses page shows the Arabic name in Arabic",
 const regArabic = /isAR \? \(course\.nameAr \|\| course\.name\) : course\.name/.test(reg);
 check("register picker shows the Arabic name in Arabic", regArabic);
 
+check("admin deletes a course from its row",
+  /action: "deleteCourse"/.test(admin) && /className = "del"/.test(admin));
+check("staff API deletes only unused courses",
+  /action === 'deleteCourse'/.test(adminGs) && /function courseUse_/.test(adminGs) && /sheet\.deleteRow\(row\)/.test(adminGs));
+
 if (fails.length) {
   console.log("FAIL — " + fails.length + " public page check(s)");
   fails.slice(0, 20).forEach(f => console.log("  - " + f));
