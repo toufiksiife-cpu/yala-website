@@ -231,7 +231,7 @@ a.card h3 { color: var(--navy); }
   border-radius: 50%; background: var(--navy); color: #fff;
   font-weight: 700; margin-block-end: 12px;
 }
-.step h3 { margin: 0 0 4px; font-size: 1.05rem; color: var(--navy-dark); }
+.step .step-t { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; color: var(--navy-dark); }
 .step p { margin: 0; color: var(--muted); font-size: .95rem; }
 
 /* ---------- contact ---------- */

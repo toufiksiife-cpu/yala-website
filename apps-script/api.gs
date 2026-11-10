@@ -16,7 +16,8 @@
 // The school's spreadsheet. Not a secret: it is only reachable by this script,
 // which runs as the owner. The sheet itself stays private.
 var SPREADSHEET_ID = '1-rQ6H-NzreQ5DAcgqykpGswJ4DXveWP1PrngJbEr3fk';
-var SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/edit';
+// Where staff manage registrations; the alert email links here, not to the sheet.
+var ADMIN_URL = 'https://yala-website.toufik-siife.workers.dev/admin';
 // Short: after a price change in the staff page the site must catch up quickly.
 var CACHE_SECONDS = 60;
 
@@ -276,7 +277,8 @@ function register_(data) {
       parentRelation: under18 ? parentRelation : '', notes: notes
     });
 
-    return { ok: true, id: row[col['RegistrationID']], under18: under18 };
+    // No registration number in the reply: parents must not see or quote it.
+    return { ok: true, under18: under18 };
   } finally {
     lock.releaseLock();
   }
@@ -305,7 +307,7 @@ function notifyStaff_(info) {
         (info.parentRelation ? ' (' + info.parentRelation + ')' : ''));
     }
     if (info.notes) lines.push('ملاحظات: ' + info.notes);
-    lines.push('', 'افتح الجدول: ' + SPREADSHEET_URL);
+    lines.push('', 'افتح الإدارة: ' + ADMIN_URL);
 
     MailApp.sendEmail({
       to: to.join(','),

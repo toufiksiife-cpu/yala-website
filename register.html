@@ -57,15 +57,15 @@
 
       <div class="steps" style="margin-block-end:32px">
         <div class="step">
-          <h3 data-i18n="form.step1t">اختر الدورة</h3>
+          <p class="step-t" data-i18n="form.step1t">اختر الدورة</p>
           <p data-i18n="form.step1d">حدّد الدورة أو الدورات المناسبة في النموذج أدناه.</p>
         </div>
         <div class="step">
-          <h3 data-i18n="form.step2t">أرسل الطلب</h3>
+          <p class="step-t" data-i18n="form.step2t">أرسل الطلب</p>
           <p data-i18n="form.step2d">لا حاجة لدفع أي شيء على الموقع.</p>
         </div>
         <div class="step">
-          <h3 data-i18n="form.step3t">نتصل بك</h3>
+          <p class="step-t" data-i18n="form.step3t">نتصل بك</p>
           <p data-i18n="form.step3d">نؤكد التوقيت والمستوى ونحدد موعد أول حصة.</p>
         </div>
       </div>
@@ -158,7 +158,6 @@
       <div id="success" class="success-box" hidden>
         <h2 data-i18n="success.title">تم استلام تسجيلك</h2>
         <p data-i18n="success.text">سنتصل بك على الهاتف لتأكيد الدورة والتوقيت.</p>
-        <p><span data-i18n="success.ref">رقم التسجيل:</span> <span class="id" id="reg-id">—</span></p>
         <p style="margin-block-start:20px">
           <a class="btn btn-wa" href="https://wa.me/213652783647" rel="noopener" data-i18n="success.wa">راسلنا على واتساب</a>
         </p>
@@ -407,7 +406,6 @@
       .then(function (res) {
         if (res.ok) {
           form.hidden = true;
-          document.getElementById("reg-id").textContent = res.id;
           document.getElementById("success").hidden = false;
           document.getElementById("success").scrollIntoView({ block: "center", behavior: "smooth" });
           return;

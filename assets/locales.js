@@ -103,7 +103,6 @@ window.I18N_EN = {
   "form.submit": "Send registration",
   "success.title": "Registration received",
   "success.text": "We will call you to confirm the course and the timetable.",
-  "success.ref": "Registration number:",
   "success.wa": "Message us on WhatsApp",
 
   // about

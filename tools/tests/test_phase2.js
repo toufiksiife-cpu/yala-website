@@ -172,8 +172,9 @@ const want = (label, got, ok, detail) => { if (!ok) { fails.push(label); console
 
 const clean = results["clean submit"];
 want("clean submit ok", typeof clean === "object" && clean.first.ok === true &&
-  clean.first.id === "REG-0001" && clean.first.under18 === true, clean);
+  clean.first.id === undefined && clean.first.under18 === true, clean);
 want("row written", typeof clean === "object" &&
+  clean.written[HEAD.indexOf("RegistrationID")] === "REG-0001" &&
   clean.written[HEAD.indexOf("FullName")] === "Amina Belkacem" &&
   clean.written[HEAD.indexOf("Status")] === "Pending" &&
   clean.written[HEAD.indexOf("Under18")] === "YES" &&
@@ -204,7 +205,7 @@ want("staff are mailed", typeof mailed === "object" && mailed.res.ok === true &&
   mailed.mail && mailed.mail.to === "owner@example.com,second@example.com" &&
   /Amina Belkacem/.test(mailed.mail.subject) && /REG-0001/.test(mailed.mail.subject) &&
   /0551112233/.test(mailed.mail.body) && /Karim Belkacem/.test(mailed.mail.body) &&
-  /spreadsheets/.test(mailed.mail.body), mailed);
+  /\/admin/.test(mailed.mail.body) && !/spreadsheets/.test(mailed.mail.body), mailed);
 
 const mailFail = results["mail failure never loses the registration"];
 want("mail failure keeps the row", typeof mailFail === "object" &&
