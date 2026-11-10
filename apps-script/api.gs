@@ -338,6 +338,16 @@ function activeStaffEmails_() {
   return out;
 }
 
+// Run once from the editor to approve the mail permission and get a proof mail.
+function testMail() {
+  MailApp.sendEmail({
+    to: Session.getEffectiveUser().getEmail(),
+    subject: 'YALA — mail test',
+    body: 'If you got this, registration alerts will reach you.'
+  });
+  return 'sent to ' + Session.getEffectiveUser().getEmail();
+}
+
 function courseNames_() {
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Config');
   var values = sheet.getDataRange().getValues();
