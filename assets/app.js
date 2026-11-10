@@ -37,6 +37,16 @@
     });
     var titleKey = document.documentElement.getAttribute("data-title");
     if (titleKey && t[titleKey]) document.title = t[titleKey];
+
+    // The English page is its own URL: it must not point search engines back to
+    // the Arabic one, or English never gets indexed.
+    var canon = document.querySelector('link[rel="canonical"]');
+    var ogUrl = document.querySelector('meta[property="og:url"]');
+    if (canon) {
+      var enUrl = canon.getAttribute("href") + "?lang=en";
+      canon.setAttribute("href", enUrl);
+      if (ogUrl) ogUrl.setAttribute("content", enUrl);
+    }
   }
 
   document.addEventListener("click", function (e) {
