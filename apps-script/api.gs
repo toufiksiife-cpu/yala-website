@@ -72,7 +72,7 @@ function json_(payload) {
 
 function catalog_() {
   var cache = CacheService.getScriptCache();
-  var cached = cache.get('catalog-v3');
+  var cached = cache.get('catalog-v4');
   if (cached) return JSON.parse(cached);
 
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Config');
@@ -93,6 +93,7 @@ function catalog_() {
   var iOrder = col['CategoryOrder'], iArabic = col['CategoryArabic'];
   var iSort = col['SortOrder'], iHidden = col['Hidden'];
   var iSubAr = col['SubCategoryArabic'], iLevelAr = col['SubSubCategoryArabic'];
+  var iNameAr = col['CourseNameArabic'];
 
   var byCategory = {};
   var catRank = {};
@@ -113,6 +114,7 @@ function catalog_() {
     }
     byCategory[category].push({
       name: String(row[col['CourseName']] || '').trim(),
+      nameAr: iNameAr !== undefined ? String(row[iNameAr] || '').trim() : '',
       full: full,
       subject: String(row[col['SubCategory']] || '').trim(),
       level: String(row[col['SubSubCategory']] || '').trim(),
@@ -163,13 +165,13 @@ function catalog_() {
       if (!level.ar && course.levelAr) level.ar = course.levelAr;
 
       // No price here on purpose: prices are staff-only.
-      level.courses.push({ name: course.name, full: course.full, room: course.room });
+      level.courses.push({ name: course.name, nameAr: course.nameAr, full: course.full, room: course.room });
     }
     out.push({ key: cat.key, ar: cat.ar, groups: groups });
   }
 
   var payload = { ok: true, updated: new Date().toISOString(), categories: out };
-  cache.put('catalog-v3', JSON.stringify(payload), CACHE_SECONDS);
+  cache.put('catalog-v4', JSON.stringify(payload), CACHE_SECONDS);
   return payload;
 }
 

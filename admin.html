@@ -137,6 +137,9 @@
   .course-head span { padding-block: 7px; }
   .cell { display: grid; gap: 3px; min-width: 0; }
   .cell > span { display: none; }
+  .cell.names { gap: 5px; }
+  .cell.names label { display: grid; gap: 2px; }
+  .cell.names label > span { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); }
   .mini-add { margin-inline-start: auto; min-height: 40px; }
   .cat-actions { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px 0; padding-block: 10px; background: #fff; border-block-start: 1px solid var(--line); }
   #cat-save.is-dirty { box-shadow: 0 0 0 3px rgba(241,130,37,.35); }
@@ -444,6 +447,10 @@
           <div>
             <label for="nc-name">Course name (shown on the website)</label>
             <input id="nc-name" type="text" maxlength="80" required>
+          </div>
+          <div>
+            <label for="nc-name-ar">Course name in Arabic (shown when the site is in Arabic)</label>
+            <input id="nc-name-ar" type="text" maxlength="80" dir="rtl" lang="ar">
           </div>
           <div>
             <label for="nc-fee">Monthly fee (DZD, staff only)</label>
@@ -1035,7 +1042,7 @@
       } else {
         var header = document.createElement("div");
         header.className = "course-row course-head";
-        ["Course name", "Sub-section", "Level", "Fee (DZD)", "Room", "Teacher", "Shown", ""].forEach(function (text) {
+        ["Course name (FR / AR)", "Sub-section", "Level", "Fee (DZD)", "Room", "Teacher", "Shown", ""].forEach(function (text) {
           var span = document.createElement("span");
           span.textContent = text;
           header.appendChild(span);
@@ -1293,7 +1300,33 @@
       row.appendChild(courseCell(labelText, input));
     }
 
-    textField("Course name", course.name, 80, "", function (value) { course.name = value; });
+    // The two names sit together: French for the English site, Arabic for the Arabic one.
+    var names = document.createElement("div");
+    names.className = "cell names";
+    [["French", course.name, false], ["Arabic", course.nameAr, true]].forEach(function (spec) {
+      var label = document.createElement("label");
+      var caption = document.createElement("span");
+      caption.textContent = spec[0];
+      var input = document.createElement("input");
+      input.type = "text";
+      input.maxLength = 80;
+      input.value = spec[1] || "";
+      if (spec[2]) {
+        input.dir = "rtl";
+        input.lang = "ar";
+      }
+      input.setAttribute("aria-label", "Course name in " + spec[0].toLowerCase());
+      input.addEventListener("input", function () {
+        if (spec[2]) course.nameAr = this.value;
+        else course.name = this.value;
+        markDirty();
+      });
+      label.appendChild(caption);
+      label.appendChild(input);
+      names.appendChild(label);
+    });
+    row.appendChild(names);
+
     textField("Sub-section", course.subject || "", 80, "dl-sub", function (value) {
       course.subject = value;
       course.subjectAr = arabicFor("subject", value, course);
@@ -1382,7 +1415,8 @@
     state.catalog.forEach(function (cat) {
       cat.courses.forEach(function (course, i) {
         courses.push({
-          row: course.row, name: course.name, fee: course.fee, room: course.room,
+          row: course.row, name: course.name, nameAr: course.nameAr || "",
+          fee: course.fee, room: course.room,
           teacher: course.teacher || "",
           subject: course.subject || "", level: course.level || "",
           subjectAr: course.subjectAr || "", levelAr: course.levelAr || "",
@@ -1437,6 +1471,7 @@
       subject: el("nc-sub").value,
       level: el("nc-level").value,
       name: el("nc-name").value,
+      nameAr: el("nc-name-ar").value,
       fee: el("nc-fee").value,
       room: el("nc-room").value,
       teacher: el("nc-teacher").value
@@ -1448,6 +1483,7 @@
           return notice(catalogError(res), "err");
         }
         el("nc-name").value = "";
+        el("nc-name-ar").value = "";
         el("nc-fee").value = "";
         el("nc-room").value = "";
         el("nc-teacher").value = "";

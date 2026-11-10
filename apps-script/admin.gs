@@ -1155,6 +1155,7 @@ function ensureCatalog_(sheet) {
 
   ensureCatalogColumn_(sheet, head, 'CategoryOrder', meta.map(function (m) { return m.key ? m.order : ''; }));
   ensureCatalogColumn_(sheet, head, 'CategoryArabic', meta.map(function (m) { return m.key ? m.arabic : ''; }));
+  ensureCatalogColumn_(sheet, head, 'CourseNameArabic', meta.map(function () { return ''; }));
   ensureCatalogColumn_(sheet, head, 'SubCategoryArabic', meta.map(function () { return ''; }));
   ensureCatalogColumn_(sheet, head, 'SubSubCategoryArabic', meta.map(function () { return ''; }));
   ensureCatalogColumn_(sheet, head, 'SortOrder', meta.map(function (m) { return m.key ? m.sort : ''; }));
@@ -1196,6 +1197,7 @@ function catalog_() {
   var iArabic = colAny_(head, ['categoryarabic']);
   var iSubAr = colAny_(head, ['subcategoryarabic']);
   var iLevelAr = colAny_(head, ['subsubcategoryarabic']);
+  var iNameAr = colAny_(head, ['coursenamearabic']);
   var iSort = colAny_(head, ['sortorder']);
   var iHidden = colAny_(head, ['hidden']);
 
@@ -1217,6 +1219,7 @@ function catalog_() {
     cat.courses.push({
       row: i + 1,
       name: String(row[iName] || '').trim(),
+      nameAr: iNameAr === -1 ? '' : String(row[iNameAr] || '').trim(),
       full: full,
       subject: String(row[iSub] || '').trim(),
       level: String(row[iLevel] || '').trim(),
@@ -1276,6 +1279,7 @@ function saveCatalogLocked_(body) {
   var head = ensureCatalog_(sheet);
   var iCat = colAny_(head, ['category']);
   var iName = colAny_(head, ['coursename']);
+  var iNameAr = colAny_(head, ['coursenamearabic']);
   var iFull = colAny_(head, ['fullcoursename']);
   var iFee = colAny_(head, ['monthlyfeedzd']);
   var iRoom = colAny_(head, ['room']);
@@ -1360,6 +1364,7 @@ function saveCatalogLocked_(body) {
   for (var c = 0; c < courses.length; c++) {
     var courseRow = Number(courses[c].row);
     put(iName, courseRow, clean_(courses[c].name, 80));
+    if (iNameAr !== -1) put(iNameAr, courseRow, clean_(courses[c].nameAr, 80));
     put(iFee, courseRow, money_(courses[c].fee));
     put(iRoom, courseRow, clean_(courses[c].room, 40));
     put(iTeacher, courseRow, clean_(courses[c].teacher, 60));
@@ -1406,6 +1411,7 @@ function addCourseLocked_(body) {
   var head = ensureCatalog_(sheet);
   var iCat = colAny_(head, ['category']);
   var iName = colAny_(head, ['coursename']);
+  var iNameAr = colAny_(head, ['coursenamearabic']);
   var iFull = colAny_(head, ['fullcoursename']);
   var iFee = colAny_(head, ['monthlyfeedzd']);
   var iRoom = colAny_(head, ['room']);
@@ -1453,6 +1459,7 @@ function addCourseLocked_(body) {
   row[iSub] = subject;
   row[iLevel] = level;
   row[iName] = name;
+  if (iNameAr !== -1) row[iNameAr] = clean_(body.nameAr, 80);
   row[iFull] = full;
   row[iFee] = fee;
   row[iRoom] = clean_(body.room, 40);

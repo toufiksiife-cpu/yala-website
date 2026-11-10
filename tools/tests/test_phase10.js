@@ -132,7 +132,8 @@ run("save renames a section and moves a course", () => {
     cat.courses.forEach((c, i) => {
       const moved = c.full === targetFull;
       courses.push({
-        row: c.row, name: c.name, fee: c.fee, room: c.room,
+        row: c.row, name: c.name, nameAr: moved ? "الرياضيات المتقدمة" : (c.nameAr || ""),
+        fee: c.fee, room: c.room,
         subject: moved ? "First year" : c.subject,
         level: moved ? "Mathematics advanced" : c.level,
         subjectAr: c.subjectAr, levelAr: moved ? "الرياضيات المتقدمة" : c.levelAr,
@@ -162,6 +163,8 @@ run("save renames a section and moves a course", () => {
     movedFull: moved[col("FullCourseName")],
     teacherColumn: rows[0].indexOf("Teacher"),
     movedTeacher: moved[rows[0].indexOf("Teacher")],
+    movedNameAr: rows[0].indexOf("CourseNameArabic") === -1
+      ? "(no column)" : moved[rows[0].indexOf("CourseNameArabic")],
     primaryCategories,
     arabic: moved[col("CategoryArabic")]
   };
@@ -178,7 +181,7 @@ run("add course fills the tree", () => {
   const f = adminFixture();
   const res = f.call({
     action: "addCourse", category: "Adult Language Courses",
-    subject: "Spanish", level: "A1", name: "Spanish A1", fee: 4200, room: "Room 3", teacher: "Mme. Amina"
+    subject: "Spanish", level: "A1", name: "Spanish A1", nameAr: "الإسبانية A1", fee: 4200, room: "Room 3", teacher: "Mme. Amina"
   });
   const added = f.tabs.Config.values[f.tabs.Config.values.length - 1];
   const head = f.tabs.Config.values[0];
@@ -192,7 +195,8 @@ run("add course fills the tree", () => {
     row: added.slice(0, 4),
     sort: added[HEAD.indexOf("SortOrder")],
     teacherColumn: head.indexOf("Teacher") !== -1 && added[head.indexOf("Teacher")] === "Mme. Amina",
-    inCatalog: after.categories[1].courses.some(c => c.row === res.row && c.level === "A1" && c.subject === "Spanish")
+    inCatalog: after.categories[1].courses.some(c => c.row === res.row && c.level === "A1" && c.subject === "Spanish"),
+    nameAr: head.indexOf("CourseNameArabic") !== -1 ? added[head.indexOf("CourseNameArabic")] : "(no column)"
   };
 });
 
@@ -235,7 +239,8 @@ expect("save renames + moves", typeof saved === "object" && saved.res.ok === tru
   saved.movedFull === "Primary School Support - First year - Mathematics - First year primary mathematics" &&
   saved.primaryCategories.join("|") === "Primary Support|Primary Support|Primary Support" &&
   saved.arabic === "دعم مدرسي — الابتدائي!" &&
-  saved.teacherColumn !== -1 && saved.movedTeacher === "Mr. Karim", saved);
+  saved.teacherColumn !== -1 && saved.movedTeacher === "Mr. Karim" &&
+  saved.movedNameAr === "الرياضيات المتقدمة", saved);
 
 const dupCat = results["save rejects duplicate section names"];
 expect("duplicate section rejected", typeof dupCat === "object" && dupCat.res.ok === false &&
@@ -246,7 +251,7 @@ expect("add course", typeof added === "object" && added.res.ok === true &&
   added.res.full === "Adult Language Courses - Spanish - A1 - Spanish A1" &&
   added.row[1] === "Spanish" && added.row[2] === "A1" && added.row[3] === "Spanish A1" &&
   added.dup.error === "course_exists" && added.inCatalog === true &&
-  added.teacherColumn === true && added.sort === 4, added);
+  added.nameAr === "الإسبانية A1" && added.teacherColumn === true && added.sort === 4, added);
 
 const pub = results["public catalog is nested and price-free"];
 expect("public tree", typeof pub === "object" &&

@@ -222,7 +222,7 @@ const r = results;
 
 const created = r["catalog creates columns"];
 expect("columns created", typeof created === "object" && created.ok === true &&
-  created.head.split("|").slice(-6).join(",") === "CategoryOrder,CategoryArabic,SubCategoryArabic,SubSubCategoryArabic,SortOrder,Hidden" &&
+  created.head.split("|").slice(-7).join(",") === "CategoryOrder,CategoryArabic,CourseNameArabic,SubCategoryArabic,SubSubCategoryArabic,SortOrder,Hidden" &&
   created.categories.join(",") === "Primary School Support@1=2,Adult Language Courses@5=1" &&
   created.arabic[0] === "دعم مدرسي — الابتدائي" &&
   created.rows.join(",") === "3,4,5" && created.fee === 2500 && created.hidden === false, created);

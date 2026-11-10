@@ -93,6 +93,19 @@ const decls = [...admin.matchAll(/^  function (\w+)\(/gm)].map(m => m[1]);
 const dupes = decls.filter((n, i) => decls.indexOf(n) !== i);
 check("admin declares no helper twice" + (dupes.length ? " (" + dupes.join(", ") + ")" : ""), !dupes.length);
 
+check("admin edits both course names", /Course name in Arabic/.test(admin) && /id="nc-name-ar"/.test(admin));
+
+// Course names: French is the sheet's CourseName, Arabic the optional CourseNameArabic.
+const apiGs = fs.readFileSync(path.join(root, "apps-script", "api.gs"), "utf8");
+const adminGs = fs.readFileSync(path.join(root, "apps-script", "admin.gs"), "utf8");
+check("public API sends the Arabic course name", /nameAr/.test(apiGs) && /CourseNameArabic/.test(apiGs));
+check("staff API stores the Arabic course name",
+  /CourseNameArabic/.test(adminGs) && /put\(iNameAr/.test(adminGs) && /row\[iNameAr\]/.test(adminGs));
+check("courses page shows the Arabic name in Arabic",
+  /isAR \? \(course\.nameAr \|\| course\.name\)/.test(courses));
+const regArabic = /isAR \? \(course\.nameAr \|\| course\.name\) : course\.name/.test(reg);
+check("register picker shows the Arabic name in Arabic", regArabic);
+
 if (fails.length) {
   console.log("FAIL — " + fails.length + " public page check(s)");
   fails.slice(0, 20).forEach(f => console.log("  - " + f));

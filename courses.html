@@ -140,7 +140,7 @@
 
 
   var box = document.getElementById("catalog");
-  var CACHE_KEY = "yala-courses-v1";
+  var CACHE_KEY = "yala-courses-v2";
   var CACHE_MS = 10 * 60 * 1000;
 
   function fail(msg) {
@@ -209,7 +209,7 @@
           level.courses.forEach(function (course) {
             var card = document.createElement("article");
             card.className = "card course";
-            card.appendChild(title("h3", course.name));
+            card.appendChild(title("h3", isAR ? (course.nameAr || course.name) : course.name));
 
             // The sheet stores "Room 1"; Arabic wants "قاعة 1".
             var room = course.room ? (isAR ? course.room.replace(/^Room\s*/i, "") : course.room) : "";

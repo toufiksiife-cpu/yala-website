@@ -354,7 +354,7 @@
               input.value = course.full;
               input.id = id;
               var span = document.createElement("span");
-              span.textContent = course.name;
+              span.textContent = isAR ? (course.nameAr || course.name) : course.name;
               label.appendChild(input);
               label.appendChild(span);
               body.appendChild(label);
