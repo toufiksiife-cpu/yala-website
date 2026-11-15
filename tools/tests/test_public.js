@@ -111,6 +111,39 @@ check("admin deletes a course from its row",
 check("staff API deletes only unused courses",
   /action === 'deleteCourse'/.test(adminGs) && /function courseUse_/.test(adminGs) && /sheet\.deleteRow\(row\)/.test(adminGs));
 
+// Phase B: Arabic catalog names, a month picker on balances, payment delete, student edit.
+check("admin translates sub-sections and levels in one place",
+  /function arabicNamesBox/.test(admin) && /Arabic names for sub-sections and levels/.test(admin));
+check("admin counts courses still missing an Arabic name",
+  /without Arabic name/.test(admin) && /missingAr/.test(admin));
+check("admin picks the balances month", /id="balance-month"/.test(admin) && /month: el\("balance-month"\)\.value/.test(admin));
+check("staff API honours the picked month",
+  /body\.month/.test(adminGs) && /function balances_\(body\)/.test(adminGs));
+check("admin deletes a payment by its id",
+  /action: "deletePayment"/.test(admin) && /function removePayment/.test(admin) &&
+  /payments\.deleteRow\(i \+ 1\)/.test(adminGs));
+check("admin edits a student's contact and status",
+  /action: "editStudent"/.test(admin) && /function saveStudentEdit/.test(admin) &&
+  /function editStudent_/.test(adminGs));
+check("admin shows a full registration card", /id="reg-detail"/.test(admin) && /function openRegDetail/.test(admin));
+
+// Phase C: a map link instead of an embedded iframe, and security headers on every response.
+const contact = fs.readFileSync(path.join(root, "contact.html"), "utf8");
+check("homepage links out to the map", /class="map-card"/.test(home) && /data-i18n="map\.open"/.test(home));
+check("contact page links out to the map", /class="map-card"/.test(contact) && /data-i18n="map\.open"/.test(contact));
+check("no page embeds a third-party map", !/google\.com\/maps[^"]*output=embed/.test(home + contact));
+check("css styles the map card, not the old frame", /\.map-card\s*\{/.test(css) && !/\.map-frame/.test(css));
+const worker = fs.readFileSync(path.join(root, "worker", "index.js"), "utf8");
+check("worker adds the security headers",
+  /"X-Content-Type-Options"/.test(worker) && /"X-Frame-Options"/.test(worker) &&
+  /"Referrer-Policy"/.test(worker) && /"Permissions-Policy"/.test(worker) &&
+  /"Strict-Transport-Security"/.test(worker));
+check("worker forwards every request to the assets binding", /env\.ASSETS\.fetch\(request\)/.test(worker));
+check("wrangler runs the worker first", /"run_worker_first":\s*true/.test(wrangler) &&
+  /"binding":\s*"ASSETS"/.test(wrangler) && /"main":\s*"worker\/index\.js"/.test(wrangler));
+check("worker source is not published as an asset", /^worker\/$/m.test(fs.readFileSync(path.join(root, ".assetsignore"), "utf8")));
+
+
 if (fails.length) {
   console.log("FAIL — " + fails.length + " public page check(s)");
   fails.slice(0, 20).forEach(f => console.log("  - " + f));

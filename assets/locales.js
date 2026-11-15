@@ -60,6 +60,8 @@ window.I18N_EN = {
   "photo.8": "YALA academy, Tlemcen — photo 8",
   "home.locText": "Abou Tachefine, Tlemcen, Algeria.",
   "home.locCta": "See the map",
+  "map.note": "Abou Tachefine, Tlemcen. Open the location for directions.",
+  "map.open": "Open in Google Maps",
 
   // courses
   "courses.title": "Courses — YALA, Tlemcen",
@@ -90,7 +92,6 @@ window.I18N_EN = {
   "form.optional": "Optional",
   "form.courses": "Courses you want",
   "form.coursesHint": "Choose one or more courses.",
-"form.noResults": "No course matches this search.",
   "form.coursesLoading": "Loading courses…",
   "form.parentTitle": "Parent or guardian",
   "form.parentHint": "Required because the student is under 18.",
