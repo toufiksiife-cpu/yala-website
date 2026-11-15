@@ -157,6 +157,25 @@
     /* Staff use this on a phone: every control under the thumb should be 44px. */
     .mini-add, .chip-x, .course-row .mini, .course-row .hide, .course-row .del { min-height: 44px; min-width: 44px; }
   }
+
+  /* Phase B: month picker, Arabic names, registration details, student edit */
+  .tool-month input { width: auto; height: auto; padding: 7px 9px; font: inherit; border: 1px solid #C7D0DC; border-radius: 8px; background: #fff; }
+  .mini.danger { border-color: #E4B4B0; color: #B42318; }
+  .mini.danger:hover { background: #B42318; color: #fff; }
+  .ar-names { border-block-start: 1px dashed var(--line); margin-block: 6px 10px; padding-block-start: 6px; }
+  .ar-names > summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--navy); }
+  .ar-names .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-block-start: 8px; }
+  .ar-names label { display: grid; gap: 3px; font-size: .78rem; color: var(--muted); }
+  .ar-names input { width: 100%; padding: 6px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }
+  .reg-detail { margin-block-end: 14px; }
+  .reg-detail h2 { margin: 0 0 10px; font-size: 1rem; }
+  .reg-detail dl { display: grid; grid-template-columns: 150px 1fr; gap: 5px 12px; margin: 0; font-size: .86rem; }
+  .reg-detail dt { color: var(--muted); }
+  .reg-detail dd { margin: 0; overflow-wrap: anywhere; }
+  .reg-detail .actions { margin-block-start: 12px; }
+  @media (max-width: 560px) {
+    .ar-names .grid, .reg-detail dl { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -244,6 +263,32 @@
       <div class="actions">
         <button class="btn btn-primary" type="submit" id="pay-save">Save payment</button>
         <button class="btn btn-outline" type="button" id="pay-cancel">Cancel</button>
+      </div>
+    </form>
+
+    <form id="stu-edit" class="pay-form" hidden>
+      <h2>Edit student</h2>
+      <div class="note" id="stu-edit-who" style="background:#fff"></div>
+      <div class="grid">
+        <div>
+          <label for="se-phone">Phone</label>
+          <input id="se-phone" type="tel" inputmode="tel" maxlength="20" required>
+        </div>
+        <div>
+          <label for="se-email">Email (optional)</label>
+          <input id="se-email" type="email" maxlength="120">
+        </div>
+        <div>
+          <label for="se-status">Status</label>
+          <select id="se-status">
+            <option>Active</option>
+            <option>Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" id="se-save">Save changes</button>
+        <button class="btn btn-outline" type="button" id="se-cancel">Cancel</button>
       </div>
     </form>
 
@@ -344,6 +389,8 @@
       </div>
     </form>
 
+    <section id="reg-detail" class="card reg-detail" hidden aria-label="Registration details"></section>
+
     <div id="schema-panel" hidden></div>
 
     <section id="attendance" hidden aria-label="Attendance">
@@ -422,6 +469,11 @@
         tick Hidden to retire a course instead.
         Press Save changes when you are done — the website catches up within a minute.
       </p>
+      <p class="note">
+        Arabic names: the Arabic site shows the Arabic version when there is one, and the French name otherwise.
+        Each course has its own Arabic name; open “Arabic names for sub-sections and levels” in a section to
+        translate a name once for all the courses that share it.
+      </p>
       <div id="cat-list"></div>
       <div class="cat-actions">
         <button class="btn btn-primary" id="cat-save" type="button">Save changes</button>
@@ -481,6 +533,10 @@
       <input id="search" type="search" placeholder="Search name, phone, anything…" aria-label="Search">
       <label class="tool-check" id="unpaid-wrap" hidden>
         <input type="checkbox" id="unpaid"> Unpaid this month
+      </label>
+      <label class="tool-check tool-month" id="month-wrap" hidden>
+        Month
+        <input type="month" id="balance-month">
       </label>
       <button class="btn btn-outline" id="refresh" type="button">Refresh</button>
       <button class="btn btn-outline" id="check" type="button">Check spreadsheet</button>
@@ -630,6 +686,20 @@
     btn.className = "mini";
     var id, name;
 
+    if (state.tab === "Payments") {
+      id = rowValue(row, /^paymentid$/i);
+      if (!id) return td;
+      btn.textContent = "Delete";
+      btn.className = "mini danger";
+      btn.dataset.action = "delPay";
+      btn.dataset.id = id;
+      btn.dataset.name = rowValue(row, /^studentname$/i);
+      btn.dataset.amount = rowValue(row, /^amount$/i);
+      btn.dataset.date = rowValue(row, /^date$/i);
+      td.appendChild(btn);
+      return td;
+    }
+
     if (state.tab === "Registrations") {
       id = rowValue(row, /^registrationid$/i);
       if (!id) return td;
@@ -639,6 +709,15 @@
         return td;
       }
       name = rowValue(row, /^fullname$/i);
+
+      // The table clips long values; the card shows the whole registration.
+      var detail = document.createElement("button");
+      detail.type = "button";
+      detail.className = "mini";
+      detail.textContent = "Details";
+      detail.dataset.action = "regDetail";
+      detail._row = row;
+      td.appendChild(detail);
 
       var select = document.createElement("select");
       select.className = "mini";
@@ -687,7 +766,8 @@
       var chip = document.createElement("span");
       chip.className = "chip " + (bal.balance <= 0 ? "paid" : "due");
       chip.textContent = bal.balance <= 0 ? "Paid" : "Due " + bal.balance.toLocaleString("en-US");
-      chip.title = "This month: " + bal.paid.toLocaleString("en-US") + " paid of " + bal.due.toLocaleString("en-US") + " DZD";
+      chip.title = (state.balances.month || "This month") + ": " + bal.paid.toLocaleString("en-US") +
+        " paid of " + bal.due.toLocaleString("en-US") + " DZD";
       td.appendChild(chip);
     }
     btn.textContent = "Payment";
@@ -698,6 +778,18 @@
     // Payment popup offers only the courses the student is actually in.
     btn.dataset.courses = rowValue(row, /^courses$/i) || "";
     td.appendChild(btn);
+
+    var edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "mini";
+    edit.textContent = "Edit";
+    edit.dataset.action = "editStudent";
+    edit.dataset.id = id;
+    edit.dataset.name = name || "";
+    edit.dataset.phone = rowValue(row, /^phone$/i);
+    edit.dataset.email = rowValue(row, /^email$/i);
+    edit.dataset.status = rowValue(row, /^status$/i) || "Active";
+    td.appendChild(edit);
     return td;
   }
 
@@ -815,7 +907,8 @@
     var table = document.createElement("table");
     var thead = document.createElement("thead");
     var htr = document.createElement("tr");
-    var hasActions = state.tab === "Registrations" || state.tab === "Students" || state.tab === "Staff";
+    var hasActions = state.tab === "Registrations" || state.tab === "Students" ||
+      state.tab === "Payments" || state.tab === "Staff";
     if (hasActions) {
       var blank = document.createElement("th");
       blank.scope = "col";
@@ -870,6 +963,8 @@
       show(el("stu-form"), false);
       show(el("teach-form"), false);
       show(el("staff-form"), false);
+      show(el("stu-edit"), false);
+      show(el("reg-detail"), false);
       show(el("courses"), false);
       show(el("cat-new"), false);
       show(el("notice"), false);
@@ -881,6 +976,10 @@
       b.setAttribute("aria-selected", b.dataset.tab === state.tab ? "true" : "false");
     });
     show(el("unpaid-wrap"), state.tab === "Students");
+    show(el("month-wrap"), state.tab === "Students");
+    if (state.tab === "Students" && !el("balance-month").value) {
+      el("balance-month").value = todayISO().slice(0, 7);
+    }
     show(el("add-new"), state.tab === "Registrations" || state.tab === "Teachers" || state.tab === "Staff");
     el("add-new").textContent = state.tab === "Teachers" ? "+ Add teacher"
       : state.tab === "Staff" ? "+ Add email" : "+ Add student";
@@ -1010,7 +1109,9 @@
       title.className = "cat-title";
       title.textContent = cat.name || cat.key;
       summary.appendChild(title);
-      summary.appendChild(countLabel(cat.courses.length, cat.courses.filter(function (c) { return c.hidden; }).length));
+      summary.appendChild(countLabel(cat.courses.length,
+        cat.courses.filter(function (c) { return c.hidden; }).length,
+        cat.courses.filter(function (c) { return !c.nameAr; }).length));
       card.appendChild(summary);
 
       var body = document.createElement("div");
@@ -1038,6 +1139,7 @@
       body.appendChild(head);
 
       body.appendChild(subChips(cat));
+      body.appendChild(arabicNamesBox(cat));
 
       if (!cat.courses.length) {
         var none = document.createElement("p");
@@ -1120,6 +1222,78 @@
     });
     markDirty();
     renderCatalog();
+  }
+
+  // One Arabic name per distinct sub-section/level instead of a second input on
+  // every row. Writing it applies to every course with that name in the catalog.
+  function arabicNamesBox(cat) {
+    var box = document.createElement("details");
+    box.className = "ar-names";
+    var summary = document.createElement("summary");
+    box.appendChild(summary);
+
+    function fields() {
+      var seen = {};
+      var out = [];
+      cat.courses.forEach(function (course) {
+        [["subject", "Sub-section"], ["level", "Level"]].forEach(function (spec) {
+          var name = course[spec[0]] || "";
+          var key = spec[0] + "|" + name;
+          if (!name || seen[key]) return;
+          seen[key] = 1;
+          out.push({ field: spec[0], label: spec[1], name: name, ar: course[spec[0] + "Ar"] || "" });
+        });
+      });
+      return out;
+    }
+
+    function caption(list) {
+      var missing = list.filter(function (f) { return !f.ar; }).length;
+      summary.textContent = "Arabic names for sub-sections and levels" +
+        (list.length ? (missing ? " — " + missing + " still in French" : " — all set") : " — none yet");
+    }
+
+    function paint() {
+      var old = box.querySelector(".grid");
+      if (old) old.remove();
+      var list = fields();
+      caption(list);
+      if (!list.length) return;
+
+      var grid = document.createElement("div");
+      grid.className = "grid";
+      list.forEach(function (f) {
+        var label = document.createElement("label");
+        label.textContent = f.label + ": " + f.name;
+        var input = document.createElement("input");
+        input.type = "text";
+        input.maxLength = 80;
+        input.dir = "rtl";
+        input.lang = "ar";
+        input.value = f.ar;
+        input.placeholder = f.ar ? "" : "No Arabic yet";
+        input.setAttribute("aria-label", "Arabic name for " + f.label.toLowerCase() + " " + f.name);
+        input.addEventListener("input", function () {
+          var value = this.value;
+          state.catalog.forEach(function (section) {
+            section.courses.forEach(function (course) {
+              if ((course[f.field] || "") !== f.name) return;
+              course[f.field + "Ar"] = value;
+            });
+          });
+          markDirty();
+          caption(fields());
+        });
+        label.appendChild(input);
+        grid.appendChild(label);
+      });
+      box.appendChild(grid);
+    }
+
+    box.addEventListener("toggle", function () { if (box.open) paint(); });
+    caption(fields());
+    box.hidden = !cat.courses.length;
+    return box;
   }
 
   // Arabic names live on every row; when a name is typed that already exists,
@@ -1218,10 +1392,12 @@
     parent.appendChild(ar);
   }
 
-  function countLabel(count, hidden) {
+  function countLabel(count, hidden, missingAr) {
     var key = document.createElement("div");
     key.className = "key";
-    key.textContent = count + (count === 1 ? " course" : " courses") + (hidden ? " · " + hidden + " hidden" : "");
+    key.textContent = count + (count === 1 ? " course" : " courses") +
+      (hidden ? " · " + hidden + " hidden" : "") +
+      (missingAr ? " · " + missingAr + " without Arabic name" : "");
     return key;
   }
 
@@ -1321,6 +1497,7 @@
         input.lang = "ar";
       }
       input.setAttribute("aria-label", "Course name in " + spec[0].toLowerCase());
+      if (spec[2] && !spec[1]) input.placeholder = "No Arabic yet — French is shown";
       input.addEventListener("input", function () {
         if (spec[2]) course.nameAr = this.value;
         else course.name = this.value;
@@ -1556,7 +1733,7 @@
   }
 
   function loadBalances() {
-    ask({ action: "balances", idToken: state.token })
+    ask({ action: "balances", idToken: state.token, month: el("balance-month").value })
       .then(function (res) {
         if (state.tab !== "Students") return;
         state.balances = res.ok ? res : null;
@@ -1671,6 +1848,125 @@
         select.disabled = false;
         select.value = was;
         notice("Could not reach the server. Check the connection, then try again.", "err");
+      });
+  }
+
+  // The table shows one line per field; this card shows every value in full.
+  function openRegDetail(row) {
+    var box = el("reg-detail");
+    box.innerHTML = "";
+
+    var h = document.createElement("h2");
+    h.textContent = "Registration " + (rowValue(row, /^registrationid$/i) || "");
+    box.appendChild(h);
+
+    var dl = document.createElement("dl");
+    Object.keys(row).forEach(function (key) {
+      var value = row[key];
+      if (value === null || value === undefined || String(value).trim() === "") return;
+      var dt = document.createElement("dt");
+      dt.textContent = String(key).replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+      var dd = document.createElement("dd");
+      dd.textContent = String(value);
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+    box.appendChild(dl);
+
+    var actions = document.createElement("div");
+    actions.className = "actions";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-outline";
+    close.textContent = "Close";
+    close.addEventListener("click", function () { show(box, false); });
+    actions.appendChild(close);
+    box.appendChild(actions);
+
+    show(box, true);
+    box.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
+  // A payment is deleted by its own ID, so a refreshed list cannot delete the
+  // wrong row if two staff are working at once.
+  function removePayment(btn) {
+    var id = btn.dataset.id;
+    var label = (btn.dataset.name || "this payment") + " · " + (btn.dataset.amount || "?") +
+      " DZD" + (btn.dataset.date ? " · " + btn.dataset.date : "");
+    if (!window.confirm("Delete payment " + id + " (" + label + ")?\n\n" +
+      "The row is removed from the Payments sheet. It cannot be undone from this page.")) return;
+
+    btn.disabled = true;
+    ask({ action: "deletePayment", paymentId: id, idToken: state.token })
+      .then(function (res) {
+        btn.disabled = false;
+        if (!res.ok) {
+          if (res.error === "not_found") {
+            notice("That payment is no longer in the sheet. Press Refresh.", "warn");
+            return load();
+          }
+          return failWrite(res);
+        }
+        notice("Deleted payment " + res.paymentId + ". Balances are recalculated.", "ok");
+        load();
+        dashboard();
+      })
+      .catch(function () {
+        btn.disabled = false;
+        notice("Could not reach the server. Nothing was deleted.", "err");
+      });
+  }
+
+  function openStudentEdit(btn) {
+    el("stu-edit-who").textContent = btn.dataset.name || "Student";
+    el("se-phone").value = btn.dataset.phone || "";
+    el("se-email").value = btn.dataset.email || "";
+    el("se-status").value = /^inactive$/i.test(btn.dataset.status || "") ? "Inactive" : "Active";
+    el("stu-edit").dataset.id = btn.dataset.id;
+    show(el("stu-edit"), true);
+    el("stu-edit").scrollIntoView({ block: "center", behavior: "smooth" });
+    el("se-phone").focus();
+  }
+
+  function saveStudentEdit(event) {
+    event.preventDefault();
+    var form = el("stu-edit");
+    var id = form.dataset.id;
+    if (!id) return;
+
+    var save = el("se-save");
+    save.disabled = true;
+    ask({
+      action: "editStudent",
+      studentId: id,
+      phone: el("se-phone").value,
+      email: el("se-email").value,
+      status: el("se-status").value,
+      idToken: state.token
+    })
+      .then(function (res) {
+        save.disabled = false;
+        if (!res.ok) {
+          var messages = {
+            missing_student: "That student is gone from the sheet. Press Refresh.",
+            invalid_phone: "Enter a phone number (8 to 15 digits).",
+            invalid_email: "That email does not look right.",
+            invalid_status: "Pick Active or Inactive."
+          };
+          if (res.error === "not_found") {
+            notice("That student is gone from the sheet. Press Refresh.", "warn");
+            return load();
+          }
+          return notice(messages[res.error] || explain(res), "err");
+        }
+        show(form, false);
+        notice("Saved " + res.studentId + " (" + res.status + ").", "ok");
+        load();
+        dashboard();
+      })
+      .catch(function () {
+        save.disabled = false;
+        notice("Could not reach the server. Nothing was saved.", "err");
       });
   }
 
@@ -2416,6 +2712,7 @@
     if (e.target.closest("#check")) return checkSheet();
     if (e.target.closest("#add-new")) return openAdd();
     if (e.target.closest("#stu-cancel")) return show(el("stu-form"), false);
+    if (e.target.closest("#se-cancel")) return show(el("stu-edit"), false);
     if (e.target.closest("#teach-cancel")) return show(el("teach-form"), false);
     if (e.target.closest("#sf-cancel")) return show(el("staff-form"), false);
     if (e.target.closest("#pay-cancel")) {
@@ -2440,11 +2737,15 @@
       if (action.dataset.action === "approve") return approve(action);
       if (action.dataset.action === "pay") return openPay(action);
       if (action.dataset.action === "staff") return toggleStaff(action);
+      if (action.dataset.action === "regDetail") return openRegDetail(action._row);
+      if (action.dataset.action === "delPay") return removePayment(action);
+      if (action.dataset.action === "editStudent") return openStudentEdit(action);
     }
   });
 
   el("pay-form").addEventListener("submit", savePayment);
   el("stu-form").addEventListener("submit", addStudent);
+  el("stu-edit").addEventListener("submit", saveStudentEdit);
   el("teach-form").addEventListener("submit", addTeacher);
   el("staff-form").addEventListener("submit", addStaffEmail);
   el("sess-form").addEventListener("submit", addSession);
@@ -2468,6 +2769,8 @@
     state.unpaid = this.checked;
     render();
   });
+
+  el("balance-month").addEventListener("change", loadBalances);
 
   document.addEventListener("change", function (e) {
     var select = e.target.closest('select[data-action="regStatus"]');

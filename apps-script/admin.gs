@@ -66,6 +66,8 @@ function doPost(e) {
     if (action === 'regStatus') return json_(regStatus_(body));
     if (action === 'balances') return json_(balances_(body));
     if (action === 'pay') return json_(pay_(body, email));
+    if (action === 'deletePayment') return json_(deletePayment_(body));
+    if (action === 'editStudent') return json_(editStudent_(body));
     if (action === 'sessions') return json_(sessions_());
     if (action === 'catalog') return json_(catalog_());
     if (action === 'saveCatalog') return json_(saveCatalog_(body));
@@ -901,12 +903,95 @@ function pay_(body, email) {
     month: clean_(body.month, 20), course: course };
 }
 
+/* Removing a payment is a correction for a mis-keyed row, so it is its own
+ * locked action rather than part of a bulk save. The ID travels from the list,
+ * so two staff deleting at once cannot remove the wrong row silently. */
+function deletePayment_(body) {
+  var paymentId = clean_(body.paymentId, 40);
+  if (!paymentId) return { ok: false, error: 'missing_payment' };
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var payments = ss.getSheetByName('Payments');
+  if (!payments) return { ok: false, error: 'missing_tab', tab: 'Payments' };
+  var head = headerRow_(payments);
+  var iId = colOf_(head, 'id', 'Payments');
+  if (iId === -1) return missing_('Payments', 'PaymentID', head);
+  var iName = colOf_(head, 'studentName', 'Payments');
+  var iAmount = colOf_(head, 'amount', 'Payments');
+  var iDate = colOf_(head, 'date', 'Payments');
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    var values = payments.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][iId]).trim() !== paymentId) continue;
+      var when = iDate === -1 ? '' : values[i][iDate];
+      payments.deleteRow(i + 1);
+      return {
+        ok: true,
+        paymentId: paymentId,
+        studentName: iName === -1 ? '' : String(values[i][iName] || '').trim(),
+        amount: iAmount === -1 ? 0 : Number(values[i][iAmount]) || 0,
+        date: when instanceof Date ? cellDate_(when) : String(when || '')
+      };
+    }
+    return { ok: false, error: 'not_found' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Contact and status only: names and course lists are changed by re-registering,
+// not here, so an old enrollment keeps the name it was created with.
+function editStudent_(body) {
+  var studentId = clean_(body.studentId, 40);
+  if (!studentId) return { ok: false, error: 'missing_student' };
+
+  var phone = digits_(body.phone);
+  if (phone.length < 8 || phone.length > 15) return { ok: false, error: 'invalid_phone' };
+  var email = clean_(body.email, 120).toLowerCase();
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return { ok: false, error: 'invalid_email' };
+
+  var asked = String(body.status || '').trim().toLowerCase();
+  var status = asked === 'active' ? 'Active' : asked === 'inactive' ? 'Inactive' : '';
+  if (!status) return { ok: false, error: 'invalid_status' };
+
+  var students = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Students');
+  if (!students) return { ok: false, error: 'missing_tab', tab: 'Students' };
+  var head = headerRow_(students);
+  var iId = colOf_(head, 'id', 'Students');
+  if (iId === -1) return missing_('Students', 'StudentID', head);
+  var iPhone = colOf_(head, 'phone', 'Students');
+  var iEmail = colOf_(head, 'email', 'Students');
+  var iStatus = colOf_(head, 'status', 'Students');
+  if (iPhone === -1 || iStatus === -1) return missing_('Students', 'Phone/Status', head);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return { ok: false, error: 'busy' };
+  try {
+    var values = students.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][iId]).trim() !== studentId) continue;
+      students.getRange(i + 1, iPhone + 1).setValue(phone);
+      if (iEmail !== -1) students.getRange(i + 1, iEmail + 1).setValue(email);
+      students.getRange(i + 1, iStatus + 1).setValue(status);
+      return { ok: true, studentId: studentId, phone: phone, email: email, status: status };
+    }
+    return { ok: false, error: 'not_found' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 /* ================= MONTHLY BALANCES ================= */
 
 // One list for the Students tab: what each active student owes this month and
 // what was paid, so the front desk does not have to add up the Payments tab.
 function balances_(body) {
-  var month = dateKey_(new Date()).slice(0, 7);
+  // Any month the front desk picks; anything malformed falls back to this month.
+  var asked = body && body.month ? String(body.month).trim() : '';
+  var month = /^\d{4}-(0[1-9]|1[0-2])$/.test(asked) ? asked : dateKey_(new Date()).slice(0, 7);
 
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var students = ss.getSheetByName('Students');
