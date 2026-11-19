@@ -72,6 +72,9 @@ a { color: var(--indigo); }
   font-weight: 600; border-block-end: 1px solid var(--line);
 }
 .nav-links a[aria-current="page"] { color: var(--indigo); }
+@media (min-width: 760px) {
+  .nav-links a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--clay); }
+}
 
 .nav-actions { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; }
 .nav-cta { display: none; padding: 9px 16px; border-radius: 8px; font-size: .95rem; }
@@ -158,25 +161,20 @@ html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
 /* ---------- hero animation (single orchestrated reveal) ---------- */
+/* Movement only: the old fade started with an invisible headline. */
 .hero .kicker,
 .hero h1,
 .hero p.lead,
-.hero .hero-actions {
-  animation: hero-reveal 1s ease-out both;
-  animation-delay: .15s;
-  opacity: 0;
-}
-.hero h1 { animation-delay: .35s; }
-.hero p.lead { animation-delay: .55s; }
-.hero .hero-actions { animation-delay: .75s; }
+.hero .hero-actions { animation: hero-reveal .6s ease-out both; }
+.hero h1 { animation-delay: .06s; }
+.hero p.lead { animation-delay: .12s; }
+.hero .hero-actions { animation-delay: .18s; }
 @keyframes hero-reveal {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(14px); }
+  to   { transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero .kicker, .hero h1, .hero p.lead, .hero .hero-actions {
-    animation: none; opacity: 1; transform: none;
-  }
+  .hero .kicker, .hero h1, .hero p.lead, .hero .hero-actions { animation: none; }
 }
 
 /* ---------- sections ---------- */
@@ -223,7 +221,7 @@ html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
 /* One accent rule for every card, so no grid looks different from the next. */
 .card::before {
   content: ""; display: block; width: 34px; height: 3px;
-  border-radius: 2px; background: var(--ochre); margin-block-end: 14px;
+  border-radius: 2px; background: var(--clay); margin-block-end: 14px;
 }
 .card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(16,36,58,.14); }
 .card h3, .card h2 { margin: 0 0 6px; font-size: 1.25rem; color: var(--indigo-deep); }
@@ -240,6 +238,13 @@ a.card h3 { color: var(--indigo); }
 }
 .why-band .card::before { display: none; }
 .why-band .card:hover { transform: none; box-shadow: none; }
+/* Three notes should stay three notes on a tablet, not wrap 2 + 1 centred. */
+@media (min-width: 760px) {
+  .why-band .grid { grid-template-columns: repeat(3, 1fr); }
+  .why-band .grid.cols-3 > :last-child:nth-child(odd) {
+    grid-column: auto; max-width: none; justify-self: stretch;
+  }
+}
 
 /* ---------- prose ---------- */
 .prose { max-width: 68ch; }
@@ -365,8 +370,8 @@ a.card h3 { color: var(--indigo); }
 }
 .site-footer a { color: #fff; overflow-wrap: anywhere; }
 .site-footer .cols { display: grid; gap: 28px; }
-@media (min-width: 760px) { .site-footer .cols { grid-template-columns: 2fr 1fr 1fr; } }
-.site-footer h3 { margin: 0 0 10px; font-size: .9rem; text-transform: uppercase; letter-spacing: .08em; color: #fff; }
+@media (min-width: 760px) { .site-footer .cols { grid-template-columns: 1.4fr 1.4fr 1fr; } }
+.site-footer h3 { margin: 0 0 10px; font-size: 1rem; color: #fff; }
 .site-footer p { margin: 0 0 10px; }
 .site-footer ul { list-style: none; margin: 0; padding: 0; }
 .site-footer li { margin-block-end: 8px; }

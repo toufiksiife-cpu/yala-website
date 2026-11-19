@@ -33,7 +33,14 @@
   .cat-block { margin-block-end: 40px; scroll-margin-top: 84px; }
   .cat-block h2 { margin-block-end: 4px; }
   .cat-block .count { margin: 0 0 16px; color: var(--muted); font-size: .9rem; }
-  .course .meta { font-size: .85rem; color: var(--muted); margin: 0; }
+  /* Course rows, not 25 boxes: the level title already groups them. */
+  .course-list { border-block-start: 1px solid var(--line); }
+  .course-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    padding-block: 12px; border-block-end: 1px solid var(--line);
+  }
+  .course-row h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--ink); }
+  .course-row .meta { flex: none; margin: 0; font-size: .85rem; color: var(--muted); }
   .sub-block { margin-block-start: 20px; }
   .sub-title { margin: 0 0 4px; font-weight: 700; color: var(--indigo); font-size: 1.02rem; }
   .level-block { margin-block-start: 10px; }
@@ -205,10 +212,10 @@
           }
 
           var grid = document.createElement("div");
-          grid.className = "grid cols-2";
+          grid.className = "course-list";
           level.courses.forEach(function (course) {
             var card = document.createElement("article");
-            card.className = "card course";
+            card.className = "course-row";
             card.appendChild(title("h3", isAR ? (course.nameAr || course.name) : course.name));
 
             // The sheet stores "Room 1"; Arabic wants "قاعة 1".
