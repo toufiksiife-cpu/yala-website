@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>YALA — Management</title>
 <meta name="description" content="Staff management for YALA — sign in with a staff Google account.">
-<meta name="theme-color" content="#1E456F">
+<meta name="theme-color" content="#17324F">
 <link rel="icon" href="assets/img/favicon.png">
 <link rel="stylesheet" href="assets/css/style.css">
 <style>
@@ -20,7 +20,7 @@
   .card p { color: var(--muted); margin-block: 0 16px; }
   .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 20px 12px; }
   .tab { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 8px 16px; font: inherit; cursor: pointer; }
-  .tab[aria-selected="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .tab[aria-selected="true"] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
   .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-block-end: 12px; }
   .toolbar input { flex: 1 1 200px; min-width: 0; padding: 10px 12px; font: inherit; border: 1px solid #C7D0DC; border-radius: 8px; }
   .toolbar .status { color: var(--muted); font-size: .85rem; }
@@ -32,13 +32,13 @@
   .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; background: var(--bg-soft); color: var(--muted); }
   .chip.pending { background: #FFF1E3; color: #8A4B00; }
   .chip.active { background: #EAF6E1; color: #3F5F14; }
-  .chip.contacted { background: #E8F1FB; color: #1E456F; }
+  .chip.contacted { background: #F1E7DA; color: #17324F; }
   .chip.rejected { background: #FEF3F2; color: #7A271A; }
   .chip.paid { background: #EAF6E1; color: #3F5F14; }
   .chip.due { background: #FEF3F2; color: #7A271A; }
   .chip.minor { background: #FFF1E3; color: #8A4B00; }
   .tool-check { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); cursor: pointer; }
-  .tool-check input { width: 17px; height: 17px; accent-color: var(--navy); }
+  .tool-check input { width: 17px; height: 17px; accent-color: var(--indigo); }
   td select.mini { padding: 4px 6px; }
   td .chip + .mini, td select.mini + .mini { margin-inline-start: 6px; }
   td a.mini { text-decoration: none; margin-inline-end: 6px; }
@@ -47,8 +47,8 @@
   .gsi { margin-block-start: 8px; }
 
   /* Phase 5: write actions */
-  .mini { border: 1px solid var(--navy); background: #fff; color: var(--navy); border-radius: 6px; padding: 4px 10px; font: inherit; font-size: .82rem; cursor: pointer; white-space: nowrap; }
-  .mini:hover { background: var(--navy); color: #fff; }
+  .mini { border: 1px solid var(--indigo); background: #fff; color: var(--indigo); border-radius: 6px; padding: 4px 10px; font: inherit; font-size: .82rem; cursor: pointer; white-space: nowrap; }
+  .mini:hover { background: var(--indigo); color: #fff; }
   .mini[disabled] { opacity: .5; cursor: progress; }
   #notice { border-radius: 8px; padding: 12px 14px; margin-block-end: 14px; font-size: .9rem; }
   #notice.ok { background: #EAF6E1; color: #2F4A10; }
@@ -58,7 +58,7 @@
   #schema-panel h2 { font-size: .95rem; margin: 0 0 8px; }
   #schema-panel table { font-size: .82rem; }
   #schema-panel td, #schema-panel th { padding: 4px 8px; }
-  .pay-form { border: 1px solid var(--navy); border-radius: var(--radius); padding: 16px; margin-block-end: 14px; background: #F7FAFF; }
+  .pay-form { border: 1px solid var(--indigo); border-radius: var(--radius); padding: 16px; margin-block-end: 14px; background: #F7FAFF; }
   .pay-form h2 { font-size: 1rem; margin: 0 0 4px; }
   .pay-form .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
   .pay-form label { display: block; font-size: .82rem; font-weight: 600; margin-block: 10px 4px; }
@@ -67,12 +67,12 @@
   .pay-form fieldset { border: 1px solid #C7D0DC; border-radius: 6px; margin: 12px 0 0; padding: 8px 12px 12px; }
   .pay-form legend { font-size: .82rem; font-weight: 600; padding-inline: 4px; }
   .pay-form .courses label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 14px 4px 0; font-weight: 600; }
-  .pay-form .courses input { width: 17px; height: 17px; accent-color: var(--navy); }
+  .pay-form .courses input { width: 17px; height: 17px; accent-color: var(--indigo); }
   .pay-form .course-picker { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; }
   .pay-form .course-picker > div { flex: 1 1 160px; min-width: 0; }
   .pay-form .course-picker label { display: block; margin: 0 0 2px; }
   .pay-form .course-picker select { padding: 7px 9px; }
-  #st-courses h2, #te-courses h2 { font-size: .82rem; margin: 10px 0 2px; color: var(--navy); }
+  #st-courses h2, #te-courses h2 { font-size: .82rem; margin: 10px 0 2px; color: var(--indigo); }
   #st-courses h3, #te-courses h3 { font-size: .78rem; margin: 8px 0 2px; color: var(--muted); }
   #st-courses h4, #te-courses h4 { font-size: .74rem; margin: 6px 0 2px 14px; color: var(--muted); }
   @media (max-width: 560px) { .pay-form .grid { grid-template-columns: 1fr; } }
@@ -80,7 +80,7 @@
   /* Phase 6: overview */
   .dash { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 18px 0; }
   .stat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 14px 16px; }
-  .stat b { display: block; font-size: 1.6rem; line-height: 1.2; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .stat b { display: block; font-size: 1.6rem; line-height: 1.2; color: var(--indigo); font-variant-numeric: tabular-nums; }
   .stat span { font-size: .8rem; color: var(--muted); }
   .dash-courses { grid-column: 1 / -1; margin: 0; font-size: .85rem; color: var(--muted); }
   @media (max-width: 560px) { .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -95,25 +95,25 @@
   .att-name { font-weight: 600; }
   .att-choice { display: flex; gap: 16px; }
   .att-choice label { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; cursor: pointer; }
-  .att-choice input { width: 18px; height: 18px; accent-color: var(--navy); }
+  .att-choice input { width: 18px; height: 18px; accent-color: var(--indigo); }
   .att-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-block: 14px; }
 
   /* Weekly timetable: navy day headers, colored class cards; 2 columns on phones. */
   .att-week { display: grid; grid-template-columns: repeat(7, minmax(112px, 1fr)); gap: 8px; margin-block: 6px 14px; }
   .att-day { background: #fff; border: 1px solid #C7D0DC; border-radius: var(--radius); min-width: 0; overflow: hidden; }
-  .att-day h3 { margin: 0; padding: 7px 4px; background: var(--navy); color: #fff; font-size: .78rem; text-align: center; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+  .att-day h3 { margin: 0; padding: 7px 4px; background: var(--indigo); color: #fff; font-size: .78rem; text-align: center; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
   .att-day .body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
   .att-day .none { color: #8795A8; text-align: center; margin: 4px 0; font-size: .78rem; }
   .att-day .sess { display: block; width: 100%; text-align: start; border: 0; border-radius: 8px; padding: 7px 9px; font: inherit; font-size: .78rem; line-height: 1.35; cursor: pointer; }
   .att-day .sess b { display: block; margin-block-end: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .att-day .sess:hover, .att-day .sess:focus { outline: 2px solid var(--navy); }
+  .att-day .sess:hover, .att-day .sess:focus { outline: 2px solid var(--indigo); }
   @media (max-width: 900px) { .att-week { grid-template-columns: repeat(2, 1fr); } }
   #att-empty { margin-block: 0 12px; }
 
   /* Course catalog: one collapsible box per section, one row per course.
      Sub-section and level live on the row, so clearing one course never touches another. */
   .course-cat { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; margin-block-end: 12px; }
-  .course-cat > summary { display: flex; gap: 10px; align-items: center; padding: 12px 16px; cursor: pointer; font-weight: 700; color: var(--navy-dark); }
+  .course-cat > summary { display: flex; gap: 10px; align-items: center; padding: 12px 16px; cursor: pointer; font-weight: 700; color: var(--indigo-deep); }
   .course-cat > summary .cat-title { flex: 1; min-width: 0; }
   .course-cat > summary .key { font-weight: 400; }
   .course-cat[open] > summary { border-block-end: 1px solid var(--line); }
@@ -163,7 +163,7 @@
   .mini.danger { border-color: #E4B4B0; color: #B42318; }
   .mini.danger:hover { background: #B42318; color: #fff; }
   .ar-names { border-block-start: 1px dashed var(--line); margin-block: 6px 10px; padding-block-start: 6px; }
-  .ar-names > summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--navy); }
+  .ar-names > summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--indigo); }
   .ar-names .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-block-start: 8px; }
   .ar-names label { display: grid; gap: 3px; font-size: .78rem; color: var(--muted); }
   .ar-names input { width: 100%; padding: 6px 8px; font: inherit; border: 1px solid #C7D0DC; border-radius: 6px; }

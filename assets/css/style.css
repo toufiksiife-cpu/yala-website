@@ -1,16 +1,16 @@
 /* YALA — one stylesheet, mobile first, logical properties so RTL needs no extra rules. */
 
 :root {
-  --navy: #1E456F;
-  --navy-dark: #16334F;
-  --green: #7CB73E;
-  --teal: #2D9D97;
-  --orange: #F18225;
-  --ink: #111827;
-  --muted: #55627A;
-  --line: #E3E8EF;
+  /* Tlemcen palette: clay walls, warm ochre tile, deep indigo shadows. */
+  --indigo: #17324F;
+  --indigo-deep: #10243A;
+  --ochre: #D58A2C;
+  --clay: #B1502A;
+  --ink: #1E1A17;
+  --muted: #5E5A55;
+  --line: #E7DED2;
   --bg: #FFFFFF;
-  --bg-soft: #F5F7FA;
+  --bg-soft: #F5F3EF;
   --radius: 20px;
   --wrap: 1080px;
 }
@@ -31,10 +31,10 @@ h1, h2, h3, h4 { line-height: 1.25; }
 
 img { max-width: 100%; height: auto; display: block; }
 
-a { color: var(--navy); }
+a { color: var(--indigo); }
 
 /* Orange ring is 2.6:1 on white, under the 3:1 floor for focus indicators. */
-:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--indigo); outline-offset: 2px; }
 .hero :focus-visible,
 .site-footer :focus-visible { outline-color: #fff; }
 
@@ -42,7 +42,7 @@ a { color: var(--navy); }
 
 .skip {
   position: absolute; inset-inline-start: -9999px; top: 0;
-  background: var(--navy); color: #fff; padding: 10px 16px; z-index: 100;
+  background: var(--indigo); color: #fff; padding: 10px 16px; z-index: 100;
 }
 .skip:focus { inset-inline-start: 0; }
 
@@ -71,7 +71,7 @@ a { color: var(--navy); }
   padding: 0 4px; text-decoration: none; color: var(--ink);
   font-weight: 600; border-block-end: 1px solid var(--line);
 }
-.nav-links a[aria-current="page"] { color: var(--navy); }
+.nav-links a[aria-current="page"] { color: var(--indigo); }
 
 .nav-actions { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; }
 .nav-cta { display: none; padding: 9px 16px; border-radius: 8px; font-size: .95rem; }
@@ -82,7 +82,7 @@ a { color: var(--navy); }
 .icon-btn {
   appearance: none; background: none; border: 1px solid var(--line);
   border-radius: 8px; padding: 8px 12px; cursor: pointer;
-  font: inherit; font-weight: 600; color: var(--navy);
+  font: inherit; font-weight: 600; color: var(--indigo);
 }
 .icon-btn:hover { background: var(--bg-soft); }
 
@@ -108,15 +108,15 @@ a { color: var(--navy); }
 /* The header CTA is desktop-only: phones carry it in the menu, or the logo
    shrinks to 50px at 320px. This must come after .btn (same specificity). */
 @media (max-width: 759px) { .nav-cta { display: none; } }
-/* Ink text on brand orange: white would be 2.6:1, unreadable on a phone in daylight. */
-.btn-primary { background: var(--orange); color: var(--ink); }
+/* White on clay is 5.2:1; orange-on-white was 2.6:1. */
+.btn-primary { background: var(--clay); color: #fff; }
 .btn-ghost { border-color: currentColor; color: #fff; }
-.btn-outline { border-color: var(--navy); color: var(--navy); }
+.btn-outline { border-color: var(--indigo); color: var(--indigo); }
 .btn-wa { background: #25D366; color: #08331C; }
 
 /* ---------- hero ---------- */
 .hero {
-  background: var(--navy);
+  background: var(--indigo);
   color: #fff;
   padding-block: 72px 80px;
   overflow: hidden;
@@ -125,9 +125,9 @@ a { color: var(--navy); }
 .hero .wrap { position: relative; z-index: 2; }
 .hero-inner { display: grid; gap: 36px; }
 .hero-langs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
-.hero-langs .langs-label { flex: 1 0 100%; margin: 0 0 6px; font-size: .85rem; color: #C9D6E6; }
+.hero-langs .langs-label { flex: 1 0 100%; margin: 0 0 6px; font-size: .85rem; color: #D9CFC2; }
 .hero-langs span { font-size: clamp(1.1rem, 2.6vw, 1.7rem); font-weight: 700; line-height: 1.3; }
-.hero-langs span:first-of-type { color: #F9B871; }
+.hero-langs span:first-of-type { color: #E0A356; }
 @media (min-width: 760px) {
   .hero-inner { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); align-items: end; gap: 48px; }
   .hero-langs {
@@ -139,7 +139,7 @@ a { color: var(--navy); }
 .hero .kicker {
   display: inline-block; margin: 0 0 14px;
   font-size: .85rem; letter-spacing: .04em;
-  color: #C9D6E6;
+  color: #D9CFC2;
 }
 .hero h1 {
   margin: 0 0 16px;
@@ -149,7 +149,7 @@ a { color: var(--navy); }
 }
 .hero p.lead {
   margin: 0 0 28px; max-width: 44ch;
-  font-size: 1.05rem; color: #E4ECF5;
+  font-size: 1.05rem; color: #EADFD2;
 }
 
 /* Letter-spacing separates joined Arabic letters; it only helps the Latin face. */
@@ -186,7 +186,7 @@ html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
   margin: 0 0 8px;
   font-size: clamp(1.6rem, 4.5vw, 2.25rem);
   line-height: 1.2;
-  color: var(--navy);
+  color: var(--indigo);
 }
 @media (min-width: 760px) { .section { padding-block: 76px; } }
 .section .section-note { margin: 0 0 28px; color: var(--muted); }
@@ -207,7 +207,7 @@ html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
   display: grid; gap: 4px; padding-block: 18px;
   border-block-end: 1px solid var(--line); text-decoration: none; color: inherit;
 }
-.course-index h3 { margin: 0; font-size: 1.35rem; line-height: 1.3; color: var(--navy); }
+.course-index h3 { margin: 0; font-size: 1.35rem; line-height: 1.3; color: var(--indigo); }
 .course-index p { margin: 0; color: var(--muted); font-size: .95rem; }
 .course-index > a:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
 @media (min-width: 760px) {
@@ -223,20 +223,28 @@ html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
 /* One accent rule for every card, so no grid looks different from the next. */
 .card::before {
   content: ""; display: block; width: 34px; height: 3px;
-  border-radius: 2px; background: var(--green); margin-block-end: 14px;
+  border-radius: 2px; background: var(--ochre); margin-block-end: 14px;
 }
-.card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(30,69,111,.08); }
-.card h3, .card h2 { margin: 0 0 6px; font-size: 1.25rem; color: var(--navy-dark); }
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(16,36,58,.14); }
+.card h3, .card h2 { margin: 0 0 6px; font-size: 1.25rem; color: var(--indigo-deep); }
 .card p { margin: 0; color: var(--muted); font-size: .95rem; }
 
 a.card { text-decoration: none; color: inherit; }
-a.card:hover { border-color: var(--navy); }
-a.card h3 { color: var(--navy); }
+a.card:hover { border-color: var(--indigo); }
+a.card h3 { color: var(--indigo); }
+
+/* Three notes on a rule, not three more boxes. */
+.why-band .card {
+  background: none; border: 0; border-block-start: 2px solid var(--clay);
+  border-radius: 0; padding: 16px 0 0;
+}
+.why-band .card::before { display: none; }
+.why-band .card:hover { transform: none; box-shadow: none; }
 
 /* ---------- prose ---------- */
 .prose { max-width: 68ch; }
 .prose p { margin: 0 0 16px; }
-.prose h2 { margin: 28px 0 10px; font-size: clamp(1.3rem, 3vw, 1.5rem); color: var(--navy); }
+.prose h2 { margin: 28px 0 10px; font-size: clamp(1.3rem, 3vw, 1.5rem); color: var(--indigo); }
 .prose ul { margin: 0 0 16px; padding-inline-start: 20px; }
 .prose li { margin: 0 0 6px; }
 
@@ -275,10 +283,10 @@ a.card h3 { color: var(--navy); }
 .step::before {
   counter-increment: step; content: counter(step);
   display: grid; place-items: center; width: 30px; height: 30px;
-  border-radius: 50%; background: var(--navy); color: #fff;
+  border-radius: 50%; background: var(--indigo); color: #fff;
   font-weight: 700; margin-block-end: 12px;
 }
-.step .step-t { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; color: var(--navy-dark); }
+.step .step-t { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; color: var(--indigo-deep); }
 .step p { margin: 0; color: var(--muted); font-size: .95rem; }
 
 /* ---------- contact ---------- */
@@ -312,20 +320,20 @@ a.card h3 { color: var(--navy); }
 }
 /* 3:1 against white so the field edge is visible in daylight (WCAG 1.4.11). */
 .field input:focus, .field select:focus, .field textarea:focus {
-  border-color: var(--navy); outline: 2px solid var(--navy); outline-offset: 1px;
+  border-color: var(--indigo); outline: 2px solid var(--indigo); outline-offset: 1px;
 }
 .field textarea { min-height: 88px; resize: vertical; }
 .field-row { display: grid; gap: 0 16px; grid-template-columns: 1fr; }
 @media (min-width: 620px) { .field-row.cols-2 { grid-template-columns: 1fr 1fr; } }
 
 .fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-block-end: 18px; }
-.fieldset legend { font-size: 1.1rem; font-weight: 700; color: var(--navy-dark); padding-inline: 8px; margin-block-end: 6px; }
+.fieldset legend { font-size: 1.1rem; font-weight: 700; color: var(--indigo-deep); padding-inline: 8px; margin-block-end: 6px; }
 .choice { display: flex; align-items: flex-start; gap: 10px; padding-block: 7px; }
-.choice input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--navy); }
+.choice input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--indigo); }
 .choice label { font-weight: 400; }
 .course-group { margin-block-start: 8px; }
-.course-group h2 { font-size: 1.2rem; font-weight: 700; color: var(--navy-dark); margin: 18px 0 6px; }
-.course-group h3 { font-size: 1.1rem; font-weight: 600; color: var(--navy); margin: 14px 0 4px; }
+.course-group h2 { font-size: 1.2rem; font-weight: 700; color: var(--indigo-deep); margin: 18px 0 6px; }
+.course-group h3 { font-size: 1.1rem; font-weight: 600; color: var(--indigo); margin: 14px 0 4px; }
 .course-group h4 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 10px 0 4px 14px; }
 
 /* Course picker: one collapsible block per category. */
@@ -347,12 +355,12 @@ a.card h3 { color: var(--navy); }
 [hidden] { display: none !important; }
 
 .success-box { border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; background: var(--bg-soft); }
-.success-box h2 { margin-block-start: 0; color: var(--navy); }
-.success-box .id { font-weight: 700; font-size: 1.2rem; color: var(--navy); }
+.success-box h2 { margin-block-start: 0; color: var(--indigo); }
+.success-box .id { font-weight: 700; font-size: 1.2rem; color: var(--indigo); }
 
 /* ---------- footer ---------- */
 .site-footer {
-  background: var(--navy-dark); color: #C9D6E6;
+  background: var(--indigo-deep); color: #D9CFC2;
   padding-block: 40px 28px; margin-block-start: 0;
 }
 .site-footer a { color: #fff; overflow-wrap: anywhere; }
