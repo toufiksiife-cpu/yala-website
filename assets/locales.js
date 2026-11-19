@@ -23,6 +23,7 @@ window.I18N_EN = {
   "home.title": "YALA — Yaghmoracen Academy of Languages and Arts, Tlemcen",
   "home.kicker": "Yaghmoracen Academy of Languages and Arts — Tlemcen",
   "home.h1": "Your skills start here",
+  "home.langsLabel": "Languages we teach",
   "home.pitch": "Academic support across subjects and intensive language programs built for professional success.",
   "home.cta1": "Register online",
   "home.ctaWa": "Message us on WhatsApp",

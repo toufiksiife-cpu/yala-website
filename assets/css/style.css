@@ -11,7 +11,6 @@
   --line: #E3E8EF;
   --bg: #FFFFFF;
   --bg-soft: #F5F7FA;
-  --cream: #FBF7EF;
   --radius: 20px;
   --wrap: 1080px;
 }
@@ -117,13 +116,26 @@ a { color: var(--navy); }
 
 /* ---------- hero ---------- */
 .hero {
-  background: linear-gradient(170deg, var(--navy) 0%, #16334F 60%, rgba(30,69,111,.7) 100%);
+  background: var(--navy);
   color: #fff;
   padding-block: 72px 80px;
   overflow: hidden;
   position: relative;
 }
 .hero .wrap { position: relative; z-index: 2; }
+.hero-inner { display: grid; gap: 36px; }
+.hero-langs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
+.hero-langs .langs-label { flex: 1 0 100%; margin: 0 0 6px; font-size: .85rem; color: #C9D6E6; }
+.hero-langs span { font-size: clamp(1.1rem, 2.6vw, 1.7rem); font-weight: 700; line-height: 1.3; }
+.hero-langs span:first-of-type { color: #F9B871; }
+@media (min-width: 760px) {
+  .hero-inner { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); align-items: end; gap: 48px; }
+  .hero-langs {
+    flex-direction: column; align-items: flex-start; gap: 2px;
+    border-inline-start: 1px solid rgba(255,255,255,.3); padding-inline-start: 28px;
+  }
+  .hero-langs .langs-label { flex: none; margin-block-end: 12px; }
+}
 .hero .kicker {
   display: inline-block; margin: 0 0 14px;
   font-size: .85rem; letter-spacing: .04em;
@@ -169,7 +181,7 @@ html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
 
 /* ---------- sections ---------- */
 .section { padding-block: 56px; }
-.section-soft { background: var(--cream); }
+.section-soft { background: var(--bg-soft); }
 .section h2 {
   margin: 0 0 8px;
   font-size: clamp(1.6rem, 4.5vw, 2.25rem);
@@ -188,6 +200,19 @@ html[dir="rtl"] .site-footer h3 { letter-spacing: 0; }
   }
 }
 @media (min-width: 900px) { .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+
+/* Course index: the catalogue reads like a list of subjects, not six identical boxes. */
+.course-index { margin-block-start: 24px; border-block-start: 1px solid var(--line); }
+.course-index > a {
+  display: grid; gap: 4px; padding-block: 18px;
+  border-block-end: 1px solid var(--line); text-decoration: none; color: inherit;
+}
+.course-index h3 { margin: 0; font-size: 1.35rem; line-height: 1.3; color: var(--navy); }
+.course-index p { margin: 0; color: var(--muted); font-size: .95rem; }
+.course-index > a:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+@media (min-width: 760px) {
+  .course-index { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
+}
 
 .card {
   background: #fff; border: 1px solid var(--line);
